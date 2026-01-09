@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>阿鹿鹿接接樂</title>
+
+  <!-- LIFF SDK（抓名字/頭貼用） -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- 結算卡存圖工具 -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <style>
+    :root{
+      --bg1:#ffd6e7;
+      --bg2:#fff7fb;
+      --card:#ffffffcc;
+      --text:#111;
+      --muted:#666;
+      --accent:#ff4fa1;
+      --good:#1aa64a;
+      --bad:#d81b60;
+      --gold:#ffcc33;
+
+      --safeB: env(safe-area-inset-bottom);
+      --safeT: env(safe-area-inset-top);
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif; color:var(--text); }
+    body{
+      background: linear-gradient(180deg,var(--bg1),var(--bg2));
+      overflow:hidden;
+      touch-action: manipulation;
+      user-select:none;
+    }
+
+    .wrap{
+      position:relative;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      padding: calc(10px + var(--safeT)) 12px calc(10px + var(--safeB));
+      gap:10px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      background: var(--card);
+      backdrop-filter: blur(10px);
+      border-radius:16px;
+      padding:10px 12px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.08);
+      min-width: 210px;
+    }
+    .avatar{
+      width:34px; height:34px; border-radius:50%;
+      background:#fff;
+      box-shadow: inset 0 0 0 2px rgba(0,0,0,.06);
+      overflow:hidden;
+      flex:0 0 auto;
+    }
+    .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .who .name{ font-weight:800; font-size:14px; line-height:1.1; }
+    .who .sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+    .hud{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .pill{
+      background: var(--card);
+      backdrop-filter: blur(10px);
+      border-radius:999px;
+      padding:10px 12px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.08);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      font-weight:800;
+    }
+    .pill small{ font-weight:700; color:var(--muted); }
+
+    .btn{
+      border:none;
+      border-radius:14px;
+      padding:10px 12px;
+      font-weight:900;
+      cursor:pointer;
+      background:#fff;
+      box-shadow: 0 10px 25px rgba(0,0,0,.10);
+      transition: transform .08s ease;
+    }
+    .btn:active{ transform: scale(.98); }
+    .btn.primary{
+      background: linear-gradient(180deg,#ff76c6,#ff4fa1);
+      color:#fff;
+    }
+    .btn.ghost{
+      background: var(--card);
+      backdrop-filter: blur(10px);
+    }
+
+    .stage{
+      position:relative;
+      flex:1;
+      background: radial-gradient(1200px 600px at 50% 0%, rgba(255,255,255,.65), rgba(255,255,255,.0) 60%);
+      border-radius:22px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.12);
+      overflow:hidden;
+      min-height: 420px;
+    }
+    canvas{
+      width:100%;
+      height:100%;
+      display:block;
+    }
+
+    .hint{
+      position:absolute;
+      left:12px; top:12px;
+      background: rgba(255,255,255,.7);
+      backdrop-filter: blur(10px);
+      border-radius:14px;
+      padding:10px 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.10);
+      font-size:13px;
+      line-height:1.35;
+      max-width:min(380px, calc(100% - 24px));
+    }
+    .hint b{ color:var(--accent); }
+
+    /* 結算頁 */
+    .overlay{
+      position:absolute; inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      padding: 16px;
+      z-index: 50;
+    }
+    .overlay.show{ display:flex; }
+
+    .resultCard{
+      width:min(520px, 100%);
+      background: rgba(255,255,255,.92);
+      border-radius:24px;
+      padding:16px;
+      box-shadow: 0 26px 70px rgba(0,0,0,.25);
+    }
+    .resultTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 10px;
+    }
+    .resultTitle{
+      font-weight:1000;
+      font-size:18px;
+    }
+    .bigScore{
+      font-size:40px;
+      font-weight:1000;
+      letter-spacing:-1px;
+      margin: 6px 0 4px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .stat{
+      background: rgba(255,255,255,.85);
+      border-radius:18px;
+      padding:12px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+    }
+    .stat .k{ color:var(--muted); font-size:12px; font-weight:800; }
+    .stat .v{ font-size:18px; font-weight:1000; margin-top:4px; }
+    .resultBtns{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+      justify-content:flex-end;
+    }
+
+    /* 特效提示 */
+    .toast{
+      position:absolute;
+      left:50%; top:52%;
+      transform: translate(-50%,-50%);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight:1000;
+      color:#fff;
+      box-shadow: 0 18px 40px rgba(0,0,0,.22);
+      pointer-events:none;
+      opacity:0;
+      transition: opacity .12s ease, transform .12s ease;
+      z-index: 20;
+      text-shadow: 0 2px 10px rgba(0,0,0,.2);
+      white-space:nowrap;
+    }
+    .toast.show{
+      opacity:1;
+      transform: translate(-50%,-56%);
+    }
+    .toast.good{ background: linear-gradient(180deg,#34d17b,#1aa64a); }
+    .toast.bad{ background: linear-gradient(180deg,#ff5b8a,#d81b60); }
+    .toast.special{ background: linear-gradient(180deg,#ffd76a,#ffb200); color:#402000; }
+
+    .flash{
+      position:absolute; inset:0;
+      background: radial-gradient(800px 600px at 50% 50%, rgba(255,210,90,.55), rgba(255,210,90,0) 60%);
+      opacity:0;
+      pointer-events:none;
+      z-index: 10;
+      transition: opacity .18s ease;
+    }
+    .flash.on{ opacity:1; }
+
+    .footerRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .mini{
+      font-size:12px; color:var(--muted);
+      background: rgba(255,255,255,.6);
+      border-radius: 999px;
+      padding: 6px 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.08);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="avatar" id="avatarBox"><img id="avatarImg" alt=""></div>
+        <div class="who">
+          <div class="name" id="playerName">玩家</div>
+          <div class="sub">99 秒刷分模式</div>
+        </div>
+      </div>
+
+      <div class="hud">
+        <div class="pill"><small>分數</small> <span id="score">0</span></div>
+        <div class="pill"><small>連擊</small> <span id="combo">0</span></div>
+        <div class="pill"><small>時間</small> <span id="time">99</span></div>
+        <button class="btn ghost" id="btnAudio">🔊 音效</button>
+        <button class="btn ghost" id="btnBgm">🎵 BGM</button>
+        <button class="btn primary" id="btnStart">開始</button>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="hint" id="hintBox">
+        點擊落下的鹿鹿拿分！<br>
+        😡 <b>生氣鹿鹿</b>：點到只扣分（不會結束）<br>
+        ⭐ <b>特別鹿鹿</b>：大加分＋金光特效<br>
+        ⏱ 只會在 <b>99 秒結束</b> 後結算
+      </div>
+
+      <div class="flash" id="flash"></div>
+      <div class="toast" id="toast"></div>
+
+      <div class="overlay" id="overlay">
+        <div class="resultCard" id="resultCard">
+          <div class="resultTop">
+            <div>
+              <div class="resultTitle">結算結果</div>
+              <div style="color:var(--muted); font-weight:800; font-size:12px;" id="resultSub">—</div>
+            </div>
+            <button class="btn" id="btnClose">關閉</button>
+          </div>
+
+          <div class="bigScore"><span id="finalScore">0</span> 分</div>
+
+          <div class="grid">
+            <div class="stat"><div class="k">命中（普通）</div><div class="v" id="hitNormal">0</div></div>
+            <div class="stat"><div class="k">命中（特別）</div><div class="v" id="hitSpecial">0</div></div>
+            <div class="stat"><div class="k">命中（生氣）</div><div class="v" id="hitAngry">0</div></div>
+            <div class="stat"><div class="k">漏接（不會結束）</div><div class="v" id="missCount">0</div></div>
+          </div>
+
+          <div class="resultBtns">
+            <button class="btn" id="btnSave">📷 存結算圖</button>
+            <button class="btn primary" id="btnRestart">再玩一次</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footerRow">
+      <div class="mini">提示：手機上「輕點」更準。音量覺得吵可關音效 / BGM。</div>
+      <div class="mini">版本：vFinal-99s / no-miss-gameover / angry-minus / special-bonus</div>
+    </div>
+  </div>
+
+<script>
+/* =========================
+   0) LIFF 基本設定
+========================= */
+const LIFF_ID = "2008859924-8d4Poj1K"; // 你提供的 LIFF ID
+
+async function initLIFF(){
+  try{
+    await liff.init({ liffId: LIFF_ID });
+    let name = "玩家";
+    let pic = "";
+    if(liff.isLoggedIn()){
+      const profile = await liff.getProfile();
+      name = profile.displayName || name;
+      pic = profile.pictureUrl || "";
+    }
+    document.getElementById("playerName").textContent = name;
+    const img = document.getElementById("avatarImg");
+    if(pic){
+      img.src = pic;
+    }else{
+      // fallback 圖（簡單漸層圓）
+      img.remove();
+      const box = document.getElementById("avatarBox");
+      box.style.background = "linear-gradient(180deg,#fff,#ffd6e7)";
+    }
+  }catch(e){
+    // 不在 LIFF 也可玩
+    console.log("LIFF init skipped:", e?.message || e);
+  }
+}
+initLIFF();
+
+/* =========================
+   1) 遊戲參數（平衡區）
+========================= */
+const GAME_SECONDS = 99;
+
+// 分數設計（你可再調）
+const SCORE_NORMAL_BASE = 10;
+const SCORE_SPECIAL = 200;
+const SCORE_ANGRY = -50;
+
+// 連擊加成（平衡：爽但不爆表）
+function comboBonus(combo){
+  // 0~20 緩增，後面封頂
+  const c = Math.min(combo, 20);
+  return Math.floor(c * 0.8); // 每 combo 約 +0~16
+}
+
+// 生成節奏（平衡：越後面略快）
+function spawnIntervalMs(elapsed){
+  // elapsed: 已經過秒數
+  // 前期 650ms，中後期慢慢到 520ms
+  const t = Math.min(elapsed, 90);
+  return 650 - Math.floor(t * 1.45);
+}
+
+// 類型機率（平衡：特別鹿鹿少但有感；生氣鹿鹿存在但不惡意）
+function pickType(elapsed){
+  // 中後期生氣稍微變多、特別微增（讓後段更刺激）
+  const t = Math.min(elapsed, 90);
+
+  const angry = 0.18 + t * 0.0008;   // 約 18% -> 25%
+  const special = 0.08 + t * 0.0004; // 約 8%  -> 11.6%
+  const normal = 1 - angry - special;
+
+  const r = Math.random();
+  if(r < special) return "special";
+  if(r < special + angry) return "angry";
+  return "normal";
+}
+
+/* =========================
+   2) 音效 / BGM（不吵版本）
+========================= */
+let audioEnabled = true;
+let bgmEnabled = true;
+
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+
+function ensureAudio(){
+  if(!actx) actx = new AudioCtx();
+}
+function now(){ return actx?.currentTime || 0; }
+
+function playPop(pitch=520, gain=0.06){
+  if(!audioEnabled) return;
+  ensureAudio();
+  const t0 = now();
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  const f = actx.createBiquadFilter();
+  f.type = "lowpass";
+  f.frequency.setValueAtTime(1800, t0);
+
+  o.type = "sine";
+  o.frequency.setValueAtTime(pitch, t0);
+  o.frequency.exponentialRampToValueAtTime(pitch*1.25, t0+0.03);
+
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0+0.08);
+
+  o.connect(f); f.connect(g); g.connect(actx.destination);
+  o.start(t0);
+  o.stop(t0+0.09);
+}
+
+function playAngry(){
+  if(!audioEnabled) return;
+  ensureAudio();
+  const t0 = now();
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  o.type = "square";
+  o.frequency.setValueAtTime(140, t0);
+  o.frequency.linearRampToValueAtTime(90, t0+0.12);
+  g.gain.setValueAtTime(0.05, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0+0.14);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t0);
+  o.stop(t0+0.15);
+}
+
+function playSpecial(){
+  if(!audioEnabled) return;
+  ensureAudio();
+  const t0 = now();
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0.045, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0+0.3);
+  g.connect(actx.destination);
+
+  [880, 1174, 1568].forEach((hz,i)=>{
+    const o = actx.createOscillator();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(hz, t0 + i*0.02);
+    o.connect(g);
+    o.start(t0 + i*0.02);
+    o.stop(t0 + 0.3);
+  });
+}
+
+let bgmNodes = null;
+function startBgm(){
+  if(!bgmEnabled) return;
+  ensureAudio();
+  if(bgmNodes) return;
+
+  const master = actx.createGain();
+  master.gain.value = 0.03; // 很輕
+  master.connect(actx.destination);
+
+  const lpf = actx.createBiquadFilter();
+  lpf.type = "lowpass";
+  lpf.frequency.value = 900;
+  lpf.connect(master);
+
+  // 簡單輕快音階循環（Q版感）
+  const seq = [523, 659, 784, 659, 587, 659, 523, 494];
+  let step = 0;
+
+  const osc = actx.createOscillator();
+  osc.type = "sine";
+  osc.connect(lpf);
+
+  const tick = () => {
+    if(!bgmNodes) return;
+    const t = now();
+    const hz = seq[step % seq.length];
+    osc.frequency.setTargetAtTime(hz, t, 0.01);
+    step++;
+    bgmNodes.timer = setTimeout(tick, 260);
+  };
+
+  osc.start();
+  bgmNodes = { master, lpf, osc, timer: null };
+  tick();
+}
+
+function stopBgm(){
+  if(!bgmNodes) return;
+  clearTimeout(bgmNodes.timer);
+  try{ bgmNodes.osc.stop(); }catch(e){}
+  bgmNodes = null;
+}
+
+/* =========================
+   3) Canvas 遊戲本體
+========================= */
+const stage = document.getElementById("stage");
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+
+function resize(){
+  const r = stage.getBoundingClientRect();
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  cv.width = Math.floor(r.width * dpr);
+  cv.height = Math.floor(r.height * dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener("resize", resize);
+resize();
+
+let running = false;
+let score = 0;
+let combo = 0;
+let timeLeft = GAME_SECONDS;
+let startAt = 0;
+
+let lastSpawnAt = 0;
+let nextSpawnIn = 650;
+
+let deerList = [];
+let particles = [];
+
+let hitNormal = 0, hitSpecial = 0, hitAngry = 0, missCount = 0;
+
+const uiScore = document.getElementById("score");
+const uiCombo = document.getElementById("combo");
+const uiTime  = document.getElementById("time");
+
+function setScore(v){
+  score = Math.max(0, Math.floor(v));
+  uiScore.textContent = score;
+}
+function setCombo(v){
+  combo = Math.max(0, Math.floor(v));
+  uiCombo.textContent = combo;
+}
+function setTime(v){
+  timeLeft = Math.max(0, Math.floor(v));
+  uiTime.textContent = timeLeft;
+}
+
+function showToast(text, kind="good"){
+  const el = document.getElementById("toast");
+  el.className = "toast " + kind;
+  el.textContent = text;
+  el.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=> el.classList.remove("show"), 520);
+}
+function flash(){
+  const f = document.getElementById("flash");
+  f.classList.add("on");
+  clearTimeout(flash._t);
+  flash._t = setTimeout(()=> f.classList.remove("on"), 180);
+}
+
+function rnd(a,b){ return a + Math.random()*(b-a); }
+
+function spawnDeer(){
+  const w = stage.clientWidth;
+  const x = rnd(50, w-50);
+  const type = pickType(elapsedSeconds());
+  const size = (type === "special") ? rnd(54, 64) : rnd(46, 58);
+
+  deerList.push({
+    id: Math.random().toString(16).slice(2),
+    type,
+    x,
+    y: -60,
+    r: size,
+    vy: rnd(140, 210) * (1 + Math.min(elapsedSeconds()/140, 0.35)), // 後段略快
+    rot: rnd(-0.3, 0.3),
+    spin: rnd(-0.8, 0.8),
+    wob: rnd(0, Math.PI*2),
+    alive: true
+  });
+}
+
+function emitParticles(x,y, kind){
+  const n = (kind === "special") ? 26 : (kind === "bad" ? 12 : 16);
+  for(let i=0;i<n;i++){
+    particles.push({
+      x, y,
+      vx: rnd(-140,140),
+      vy: rnd(-220,-60),
+      g: rnd(360,520),
+      life: rnd(0.35, 0.7),
+      t: 0,
+      kind
+    });
+  }
+}
+
+function drawDeer(d){
+  // 角色化：用簡單矢量風格畫（不用外部圖片，直接可跑）
+  // 你如果要換成你自己的鹿鹿圖，也可以改成 drawImage（我可再幫你接入你現有素材）
+  const {x,y,r,type} = d;
+
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(d.rot);
+
+  // 特別鹿鹿金光
+  if(type === "special"){
+    const g = ctx.createRadialGradient(0,0, 2, 0,0, r*1.4);
+    g.addColorStop(0, "rgba(255,215,80,.65)");
+    g.addColorStop(1, "rgba(255,215,80,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0,0,r*1.4,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  // 身體
+  ctx.fillStyle = (type==="angry") ? "#ff7a9f" : (type==="special" ? "#ffe08a" : "#ffffff");
+  ctx.strokeStyle = "rgba(0,0,0,.12)";
+  ctx.lineWidth = 2;
+
+  // 小身體
+  ctx.beginPath();
+  ctx.ellipse(0, r*0.15, r*0.45, r*0.38, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 頭
+  ctx.beginPath();
+  ctx.ellipse(0, -r*0.25, r*0.42, r*0.36, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 角（鹿角 / 生氣更紅）
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = (type==="angry") ? "rgba(210,0,60,.9)" : "rgba(130,80,30,.75)";
+  ctx.beginPath();
+  ctx.moveTo(-r*0.18, -r*0.56);
+  ctx.lineTo(-r*0.33, -r*0.78);
+  ctx.lineTo(-r*0.22, -r*0.86);
+  ctx.moveTo(r*0.18, -r*0.56);
+  ctx.lineTo(r*0.33, -r*0.78);
+  ctx.lineTo(r*0.22, -r*0.86);
+  ctx.stroke();
+
+  // 眼睛（大眼角色化）
+  ctx.fillStyle = "#111";
+  const eyeY = -r*0.27;
+  const eyeX = r*0.14;
+  ctx.beginPath(); ctx.arc(-eyeX, eyeY, r*0.08, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( eyeX, eyeY, r*0.08, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.9)";
+  ctx.beginPath(); ctx.arc(-eyeX+r*0.02, eyeY-r*0.02, r*0.03, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( eyeX+r*0.02, eyeY-r*0.02, r*0.03, 0, Math.PI*2); ctx.fill();
+
+  // 臉頰紅斑（你之前偏好）
+  ctx.fillStyle = "rgba(255,105,140,.55)";
+  ctx.beginPath(); ctx.arc(-r*0.25, -r*0.15, r*0.08, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( r*0.25, -r*0.15, r*0.08, 0, Math.PI*2); ctx.fill();
+
+  // 身體斑點：特別更閃、生氣更深
+  const spotColor = (type==="angry") ? "rgba(160,0,40,.25)" : (type==="special" ? "rgba(255,170,0,.35)" : "rgba(0,0,0,.12)");
+  ctx.fillStyle = spotColor;
+  for(let i=0;i<5;i++){
+    ctx.beginPath();
+    ctx.ellipse(rnd(-r*0.2,r*0.2), rnd(r*0.02,r*0.33), rnd(r*0.05,r*0.09), rnd(r*0.04,r*0.08), rnd(0,Math.PI), 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // 生氣表情（眉毛）
+  if(type==="angry"){
+    ctx.strokeStyle = "rgba(0,0,0,.55)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-r*0.25, -r*0.40); ctx.lineTo(-r*0.05, -r*0.46);
+    ctx.moveTo(r*0.25, -r*0.40); ctx.lineTo(r*0.05, -r*0.46);
+    ctx.stroke();
+  }
+
+  // 特別皇冠小星星
+  if(type==="special"){
+    ctx.fillStyle = "rgba(255,180,0,.95)";
+    ctx.beginPath();
+    ctx.moveTo(0, -r*0.95);
+    for(let i=0;i<5;i++){
+      const a = -Math.PI/2 + i*(Math.PI*2/5);
+      ctx.lineTo(Math.cos(a)*r*0.12, -r*0.95 + Math.sin(a)*r*0.12);
+      const b = a + Math.PI/5;
+      ctx.lineTo(Math.cos(b)*r*0.05, -r*0.95 + Math.sin(b)*r*0.05);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawParticles(dt){
+  for(const p of particles){
+    p.t += dt;
+    p.vy += p.g*dt;
+    p.x += p.vx*dt;
+    p.y += p.vy*dt;
+  }
+  particles = particles.filter(p => p.t < p.life);
+
+  for(const p of particles){
+    const a = 1 - (p.t/p.life);
+    ctx.globalAlpha = a;
+    ctx.fillStyle =
+      (p.kind==="special") ? "rgba(255,190,40,.9)" :
+      (p.kind==="bad") ? "rgba(255,80,130,.9)" :
+      "rgba(60,220,130,.9)";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 2.6 + a*2.2, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function elapsedSeconds(){
+  if(!running) return 0;
+  return Math.floor((performance.now() - startAt) / 1000);
+}
+
+function update(dt){
+  // 背景小漂浮光點
+  ctx.clearRect(0,0, stage.clientWidth, stage.clientHeight);
+
+  // 生成
+  const elapsed = elapsedSeconds();
+  const want = spawnIntervalMs(elapsed);
+  nextSpawnIn = want;
+
+  if(performance.now() - lastSpawnAt > nextSpawnIn){
+    spawnDeer();
+    lastSpawnAt = performance.now();
+  }
+
+  // 更新鹿鹿
+  const h = stage.clientHeight;
+  for(const d of deerList){
+    d.wob += dt*2.2;
+    d.rot += d.spin * dt * 0.35;
+    d.x += Math.sin(d.wob) * dt * 18;
+    d.y += d.vy * dt;
+
+    // 掉出底部 -> 漏接（不結束）
+    if(d.y - d.r > h + 30 && d.alive){
+      d.alive = false;
+      missCount++;
+      // 平衡：漏接不扣分，但連擊歸零（更合理）
+      setCombo(0);
+    }
+  }
+  deerList = deerList.filter(d => d.alive);
+
+  // 畫鹿鹿
+  for(const d of deerList){
+    drawDeer(d);
+  }
+
+  // 粒子
+  drawParticles(dt);
+}
+
+function loop(){
+  if(!running) return;
+  const t = performance.now();
+  const dt = Math.min(0.033, (t - loop._last)/1000 || 0.016);
+  loop._last = t;
+
+  update(dt);
+  requestAnimationFrame(loop);
+}
+
+/* =========================
+   4) 點擊命中（規則核心）
+========================= */
+function hitAt(x,y){
+  if(!running) return;
+  // 從上層開始判定（較符合手感）
+  for(let i=deerList.length-1;i>=0;i--){
+    const d = deerList[i];
+    const dx = x - d.x;
+    const dy = y - d.y;
+    if(dx*dx + dy*dy <= d.r*d.r){
+      // 命中！
+      d.alive = false;
+
+      if(d.type === "angry"){
+        // ✅ 生氣鹿鹿：只扣分，不結束
+        hitAngry++;
+        setCombo(0);
+        setScore(score + SCORE_ANGRY);
+        playAngry();
+        showToast(`😡 -${Math.abs(SCORE_ANGRY)} 分`, "bad");
+        emitParticles(d.x, d.y, "bad");
+        return;
+      }
+
+      if(d.type === "special"){
+        hitSpecial++;
+        setCombo(combo + 1);
+        const add = SCORE_SPECIAL + comboBonus(combo);
+        setScore(score + add);
+        playSpecial();
+        flash();
+        showToast(`⭐ +${add} 分！`, "special");
+        emitParticles(d.x, d.y, "special");
+        return;
+      }
+
+      // normal
+      hitNormal++;
+      setCombo(combo + 1);
+      const add = SCORE_NORMAL_BASE + comboBonus(combo);
+      setScore(score + add);
+
+      // 連擊越高泡泡音高越高，但控制音量不吵
+      const pitch = 480 + Math.min(combo, 18) * 26;
+      const gain = 0.05 + Math.min(combo, 18) * 0.0015;
+      playPop(pitch, gain);
+
+      showToast(`+${add}`, "good");
+      emitParticles(d.x, d.y, "good");
+      return;
+    }
+  }
+}
+
+stage.addEventListener("pointerdown", (e)=>{
+  const r = stage.getBoundingClientRect();
+  const x = e.clientX - r.left;
+  const y = e.clientY - r.top;
+  hitAt(x,y);
+});
+
+/* =========================
+   5) 開始 / 結束 / 結算
+========================= */
+let timer = null;
+
+function resetAll(){
+  running = false;
+  deerList = [];
+  particles = [];
+  setScore(0);
+  setCombo(0);
+  setTime(GAME_SECONDS);
+  hitNormal=0; hitSpecial=0; hitAngry=0; missCount=0;
+  loop._last = performance.now();
+  lastSpawnAt = 0;
+}
+
+function startGame(){
+  // 任何互動先喚醒音訊（iOS/手機限制）
+  if(actx && actx.state === "suspended"){
+    actx.resume().catch(()=>{});
+  }
+
+  resetAll();
+  document.getElementById("overlay").classList.remove("show");
+  document.getElementById("hintBox").style.display = "none";
+
+  running = true;
+  startAt = performance.now();
+  lastSpawnAt = performance.now();
+  setTime(GAME_SECONDS);
+
+  if(bgmEnabled) startBgm();
+
+  // ✅ 唯一結束條件：99 秒倒數到 0
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    const elapsed = elapsedSeconds();
+    const left = GAME_SECONDS - elapsed;
+    setTime(left);
+
+    if(left <= 0){
+      endGame();
+    }
+  }, 200);
+
+  requestAnimationFrame(loop);
+}
+
+function endGame(){
+  if(!running) return;
+  running = false;
+  clearInterval(timer);
+
+  // 停止 BGM（可留著也行，我這裡結束先停）
+  stopBgm();
+
+  openResult();
+}
+
+function openResult(){
+  const name = document.getElementById("playerName").textContent || "玩家";
+  document.getElementById("finalScore").textContent = score;
+  document.getElementById("hitNormal").textContent = hitNormal;
+  document.getElementById("hitSpecial").textContent = hitSpecial;
+  document.getElementById("hitAngry").textContent = hitAngry;
+  document.getElementById("missCount").textContent = missCount;
+  document.getElementById("resultSub").textContent = `${name}｜99 秒結算（漏接不結束）`;
+
+  document.getElementById("overlay").classList.add("show");
+}
+
+/* =========================
+   6) UI 按鈕
+========================= */
+document.getElementById("btnStart").addEventListener("click", async ()=>{
+  // 若在 LIFF 內且未登入，提示登入（可省略）
+  try{
+    if(window.liff && liff.isInClient() && !liff.isLoggedIn()){
+      liff.login();
+      return;
+    }
+  }catch(e){}
+  startGame();
+});
+
+document.getElementById("btnRestart").addEventListener("click", ()=>{
+  startGame();
+});
+document.getElementById("btnClose").addEventListener("click", ()=>{
+  document.getElementById("overlay").classList.remove("show");
+});
+
+document.getElementById("btnAudio").addEventListener("click", ()=>{
+  audioEnabled = !audioEnabled;
+  document.getElementById("btnAudio").textContent = audioEnabled ? "🔊 音效" : "🔇 音效";
+  // 點一下給個回饋
+  if(audioEnabled) playPop(520, 0.04);
+});
+
+document.getElementById("btnBgm").addEventListener("click", ()=>{
+  bgmEnabled = !bgmEnabled;
+  document.getElementById("btnBgm").textContent = bgmEnabled ? "🎵 BGM" : "🎵 BGM（關）";
+  if(!bgmEnabled) stopBgm();
+  else if(running) startBgm();
+});
+
+// 存結算卡圖片
+document.getElementById("btnSave").addEventListener("click", async ()=>{
+  const card = document.getElementById("resultCard");
+  try{
+    const canvas = await html2canvas(card, { backgroundColor: null, scale: 2 });
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = "result.png";
+    a.click();
+  }catch(e){
+    alert("存圖失敗：可能是瀏覽器限制。可改用截圖。");
+  }
+});
+
+/* 初始 UI */
+resetAll();
+document.getElementById("btnAudio").textContent = audioEnabled ? "🔊 音效" : "🔇 音效";
+document.getElementById("btnBgm").textContent = bgmEnabled ? "🎵 BGM" : "🎵 BGM（關）";
+</script>
+</body>
+</html>
