@@ -14,14 +14,13 @@
       --safeB: env(safe-area-inset-bottom);
       --safeT: env(safe-area-inset-top);
 
-      /* 黃框那套 HUD 風格 */
+      /* 黃框 HUD 風格 */
       --hudBg1:#0b1a33;
       --hudBg2:#122a4f;
-      --hudCard:#0f223f;
-      --hudLine: rgba(255,255,255,.08);
       --hudText: rgba(255,255,255,.92);
       --hudSub: rgba(255,255,255,.72);
     }
+
     html,body{height:100%; margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;}
     body{
       background: linear-gradient(180deg,var(--bg1),var(--bg2));
@@ -36,7 +35,7 @@
       box-sizing:border-box;
     }
 
-    /* ====== ✅ 黃框 HUD ====== */
+    /* ====== 黃框 HUD ====== */
     .hud{
       background: linear-gradient(180deg,var(--hudBg1),var(--hudBg2));
       border-radius: 22px;
@@ -110,7 +109,9 @@
       margin-left: 2px;
     }
 
-    /* ====== 其他卡片 ====== */
+    /* ====== 其他區塊 ====== */
+    .panel{ display:grid; grid-template-columns: 1fr; gap:12px; margin-top:12px; }
+
     .card{
       background: rgba(255,255,255,.75);
       border-radius:16px;
@@ -120,9 +121,7 @@
       -webkit-backdrop-filter: blur(6px);
     }
 
-    .panel{ display:grid; grid-template-columns: 1fr; gap:12px; margin-top:12px; }
-
-    /* 控制区 */
+    /* 控制區（音量） */
     .controls{
       display:grid;
       grid-template-columns: 1fr;
@@ -143,16 +142,10 @@
       box-shadow: 0 8px 18px rgba(0,0,0,.12);
       background:#fff;
     }
-    .slider{
-      width:100%;
-      accent-color:#ff4aa2;
-    }
-    .hint{
-      font-size:12px;
-      opacity:.75;
-      line-height:1.4;
-    }
+    .slider{ width:100%; accent-color:#ff4aa2; }
+    .hint{ font-size:12px; opacity:.75; line-height:1.4; }
 
+    /* 遊戲區 */
     .stage{
       background: #fff8fc;
       border-radius:22px;
@@ -205,6 +198,7 @@
     }
     .hole.shake .mole{ animation: shake 160ms ease-in-out; }
 
+    /* 遮罩與視窗 */
     .overlay{
       position:absolute;
       inset:0;
@@ -222,8 +216,9 @@
       box-shadow:var(--shadow);
       padding:16px;
     }
-    .modal h2{ margin:0 0 8px; }
-    .modal p{ margin:8px 0; }
+    .modal h2{ margin:0 0 8px; font-size:28px; letter-spacing:.5px; }
+    .modal p{ margin:8px 0; line-height:1.55; }
+
     .btnrow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
     button.primary{
       border:0;
@@ -268,10 +263,24 @@
       filter: drop-shadow(0 10px 14px rgba(0,0,0,.14));
     }
 
+    /* ✅ 開始視窗：得分列表（用圖檔當小圖案） */
+    .scoreList{ margin-top:10px; line-height:1.7; }
+    .scoreRow{ display:flex; align-items:center; gap:10px; margin:6px 0; }
+    .scoreIcon{
+      width:22px; height:22px;
+      border-radius:6px;
+      object-fit:contain;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.15));
+      background: rgba(255,255,255,.7);
+    }
+    .scoreText{ font-weight:700; }
+    .scoreText b{ font-weight:1000; }
+
     @media (max-width:520px){
       .hudTitle{ font-size: 20px; }
       .hudStat .value{ font-size: 30px; }
       .hudStats{ gap:10px; }
+      .modal h2{ font-size:26px; }
     }
   </style>
 </head>
@@ -279,7 +288,7 @@
 <body>
   <div class="wrap">
 
-    <!-- ✅ 黃框 HUD：標題列 + 3 欄 -->
+    <!-- 黃框 HUD：標題列 + 3 欄 -->
     <div class="hud">
       <div class="hudTop">
         <div class="hudTitle">
@@ -330,32 +339,29 @@
       <div class="stage">
         <div class="grid" id="grid"></div>
 
+        <!-- ✅ 開始遮罩：加入得分機制（用圖檔小圖案） -->
         <div class="overlay show" id="startOverlay">
           <div class="modal">
-  <h2>開始遊戲</h2>
+            <h2>開始遊戲</h2>
 
-  <p>
-    ⏱️ 99 秒制：前 30 秒 1 秒/隻；後段 0.7 秒/隻。<br>
-    命中會立刻出下一隻，加快節奏。
-  </p>
+            <p>
+              ⏱️ 99 秒制：前 30 秒 1 秒/隻；後段 0.7 秒/隻。<br>
+              命中會立刻出下一隻，加快節奏。
+            </p>
 
-  <p style="margin-top:10px; line-height:1.6;">
-    🧮 得分機制：<br>
-    💧 阿水　+1（25%）<br>
-    🦒 鹿鹿　+1（25%）<br>
-    ⭐ 鹿爸　+2（20%）<br>
-    🌸 花媽　+3（15%）<br>
-    😡 生氣鹿鹿　-3（15%）
-  </p>
+            <div class="scoreList" id="scoreList">
+              <!-- JS 會填入 -->
+            </div>
 
-  <div class="btnrow">
-    <button class="primary" id="startBtn">開始</button>
-  </div>
-</div>
+            <div class="btnrow">
+              <button class="primary" id="startBtn">開始</button>
+            </div>
+          </div>
+        </div>
 
+        <!-- 結算遮罩：新增隨機鹿鹿圖 -->
         <div class="overlay" id="endOverlay">
           <div class="modal">
-            <!-- ✅ 結算隨機鹿鹿圖 -->
             <img class="endImg" id="endImg" alt="鹿鹿" />
             <h2>結算</h2>
             <p>原因：<b id="endReason">時間到</b></p>
@@ -390,27 +396,27 @@
      * 圖片（你提供的 5 張）
      ********************/
     const ASSETS = {
-      lulu:   "https://github.com/z883662/Aruru/blob/main/lulu1.png?raw=true",
-      baba:  "https://github.com/z883662/Aruru/blob/main/lulu2.png?raw=true",
-      mama:  "https://github.com/z883662/Aruru/blob/main/lulu3.png?raw=true",
-      asui:  "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true",
-      angry: "https://github.com/z883662/Aruru/blob/main/lulu5.png?raw=true"
+      lulu:   "https://github.com/z883662/Aruru/blob/main/lulu1.png?raw=true", // 鹿鹿
+      baba:  "https://github.com/z883662/Aruru/blob/main/lulu2.png?raw=true", // 鹿爸
+      mama:  "https://github.com/z883662/Aruru/blob/main/lulu3.png?raw=true", // 花媽
+      asui:  "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true", // 阿水
+      angry: "https://github.com/z883662/Aruru/blob/main/lulu5.png?raw=true"  // 生氣鹿鹿
     };
 
-    // ✅ 結算圖：從 5 張隨機抽
+    // 結算圖：5 張隨機抽
     const END_IMAGES = [ASSETS.lulu, ASSETS.baba, ASSETS.mama, ASSETS.asui, ASSETS.angry];
 
     /********************
-     * 得分 & 機率（照你上一版設定）
+     * 得分 & 機率（最終版）
      ********************/
     const SCORE = { asui:+1, lulu:+1, baba:+2, mama:+3, angry:-3 };
 
     const SPAWN_PERCENT = [
-      { type: "asui",  pct: 25 },
-      { type: "lulu",  pct: 25 },
-      { type: "baba",  pct: 20 },
-      { type: "mama",  pct: 15 },
-      { type: "angry", pct: 15 }
+      { type: "asui",  pct: 25, name: "阿水" },
+      { type: "lulu",  pct: 25, name: "鹿鹿" },
+      { type: "baba",  pct: 20, name: "鹿爸" },
+      { type: "mama",  pct: 15, name: "花媽" },
+      { type: "angry", pct: 15, name: "生氣鹿鹿" }
     ];
 
     /********************
@@ -428,7 +434,6 @@
      ********************/
     const gridEl = document.getElementById("grid");
 
-    // ✅ 黃框 HUD 三格
     const scoreEl = document.getElementById("score");
     const comboEl = document.getElementById("combo");
     const speedEl = document.getElementById("speed");
@@ -445,6 +450,7 @@
     const finalScoreEl = document.getElementById("finalScore");
     const rankBodyEl = document.getElementById("rankBody");
     const endImgEl = document.getElementById("endImg");
+    const scoreListEl = document.getElementById("scoreList");
 
     const bgmToggleBtn = document.getElementById("bgmToggleBtn");
     const sfxToggleBtn = document.getElementById("sfxToggleBtn");
@@ -457,8 +463,6 @@
     let running = false;
     let score = 0;
     let timeLeft = GAME_SECONDS;
-
-    // ✅ 連擊：命中+1；漏打/打到 angry 重置（符合直覺）
     let combo = 0;
 
     let popTimer = null;
@@ -469,7 +473,7 @@
     const activeMap = new Map(); // holeIndex -> {type, hit, timeoutId}
 
     /********************
-     * 音訊：程式生成（免付費）＋ 可調音量
+     * 音訊：程式生成 + 可調音量
      ********************/
     let audioCtx = null;
     let masterGain = null;
@@ -504,11 +508,11 @@
       const bgmV = (parseInt(bgmVolEl.value,10) || 0) / 100;
       const sfxV = (parseInt(sfxVolEl.value,10) || 0) / 100;
 
-      if (bgmGain) bgmGain.gain.value = bgmEnabled ? (bgmV * 0.25) : 0;
+      if (bgmGain) bgmGain.gain.value = bgmEnabled ? (bgmV * 0.25) : 0;  // BGM 更柔
       if (sfxGain) sfxGain.gain.value = sfxEnabled ? (sfxV * 0.60) : 0;
     }
 
-    function beep({freq=440, dur=0.06, vol=0.06, type="sine", bus="sfx"} = {}){
+    function beep({freq=440, dur=0.06, vol=0.06, type="sine"} = {}){
       if (!audioCtx) return;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
@@ -522,7 +526,7 @@
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
 
       o.connect(g);
-      g.connect(bus === "bgm" ? bgmGain : sfxGain);
+      g.connect(sfxGain);
 
       o.start(t0);
       o.stop(t0 + dur + 0.02);
@@ -530,22 +534,22 @@
 
     function sfxHitNormal(){
       if (!sfxEnabled) return;
-      beep({freq: 520, dur: 0.045, vol: 0.055, type:"triangle", bus:"sfx"});
+      beep({freq: 520, dur: 0.045, vol: 0.055, type:"triangle"});
     }
     function sfxHitBaba(){
       if (!sfxEnabled) return;
-      beep({freq: 660, dur: 0.06, vol: 0.065, type:"sine", bus:"sfx"});
-      setTimeout(()=>beep({freq: 880, dur: 0.06, vol: 0.06, type:"sine", bus:"sfx"}), 55);
+      beep({freq: 660, dur: 0.06, vol: 0.065, type:"sine"});
+      setTimeout(()=>beep({freq: 880, dur: 0.06, vol: 0.06, type:"sine"}), 55);
     }
     function sfxHitAngry(){
       if (!sfxEnabled) return;
-      beep({freq: 170, dur: 0.08, vol: 0.07, type:"sawtooth", bus:"sfx"});
-      setTimeout(()=>beep({freq: 130, dur: 0.06, vol: 0.065, type:"sawtooth", bus:"sfx"}), 70);
+      beep({freq: 170, dur: 0.08, vol: 0.07, type:"sawtooth"});
+      setTimeout(()=>beep({freq: 130, dur: 0.06, vol: 0.065, type:"sawtooth"}), 70);
     }
     function sfxHitMama(){
       if (!sfxEnabled) return;
-      beep({freq: 740, dur: 0.05, vol: 0.06, type:"triangle", bus:"sfx"});
-      setTimeout(()=>beep({freq: 980, dur: 0.05, vol: 0.055, type:"triangle", bus:"sfx"}), 55);
+      beep({freq: 740, dur: 0.05, vol: 0.06, type:"triangle"});
+      setTimeout(()=>beep({freq: 980, dur: 0.05, vol: 0.055, type:"triangle"}), 55);
     }
 
     function stopBGM(){
@@ -562,7 +566,7 @@
       stopBGM();
       if (!bgmEnabled) return;
 
-      const scale = [261.63, 293.66, 329.63, 392.00, 440.00];
+      const scale = [261.63, 293.66, 329.63, 392.00, 440.00]; // C D E G A
       const chordRoots = [261.63, 220.00, 293.66, 246.94];
       bgmStep = 0;
 
@@ -653,7 +657,7 @@
     /********************
      * 排行榜（localStorage）
      ********************/
-    const RANK_KEY = "lu_whack_rank_final_v5";
+    const RANK_KEY = "lu_whack_rank_final_v6";
     function loadRank(){
       try{ return JSON.parse(localStorage.getItem(RANK_KEY) || "[]"); }
       catch(e){ return []; }
@@ -688,7 +692,7 @@
     }
 
     /********************
-     * HUD：速度倍率（1.00x 或 1.43x）
+     * HUD：速度倍率（1.00x or 1.43x）
      ********************/
     function currentPopMs(){
       const elapsed = GAME_SECONDS - timeLeft;
@@ -699,9 +703,7 @@
 
       return POP_MS_PHASE2;
     }
-    function tempoMultiplier(){
-      return (POP_MS_PHASE1 / currentPopMs());
-    }
+    function tempoMultiplier(){ return (POP_MS_PHASE1 / currentPopMs()); }
     function updateHUD(){
       scoreEl.textContent = score;
       comboEl.textContent = combo;
@@ -709,13 +711,49 @@
     }
 
     /********************
-     * 建洞洞
+     * 開始視窗：得分列表（用圖檔 icon）
+     ********************/
+    function signScore(v){
+      return v > 0 ? `+${v}` : `${v}`;
+    }
+    function buildScoreList(){
+      // 固定順序（照你給的）
+      const order = ["asui","lulu","baba","mama","angry"];
+      const meta = Object.fromEntries(SPAWN_PERCENT.map(x=>[x.type, x]));
+      scoreListEl.innerHTML = `
+        <div class="scoreRow" style="margin-top:2px; opacity:.9;">
+          <div class="scoreText" style="font-weight:900;">得分機制：</div>
+        </div>
+        ${order.map(t=>{
+          const m = meta[t];
+          const sc = SCORE[t] ?? 0;
+          const pct = m?.pct ?? 0;
+          const name = m?.name ?? t;
+          const iconSrc =
+            t==="asui" ? ASSETS.asui :
+            t==="lulu" ? ASSETS.lulu :
+            t==="baba" ? ASSETS.baba :
+            t==="mama" ? ASSETS.mama :
+            ASSETS.angry;
+
+          return `
+            <div class="scoreRow">
+              <img class="scoreIcon" src="${iconSrc}" alt="${name}">
+              <div class="scoreText">${name}　<b>${signScore(sc)}</b>（${pct}%）</div>
+            </div>
+          `;
+        }).join("")}
+      `;
+    }
+
+    /********************
+     * 遊戲格子
      ********************/
     function buildGrid(){
       gridEl.innerHTML = "";
       holes.length = 0;
 
-      for (let i=0; i<HOLE_COUNT; i++){
+      for (let i=0; i<9; i++){
         const hole = document.createElement("div");
         hole.className = "hole";
         hole.dataset.idx = i;
@@ -763,7 +801,7 @@
     }
 
     /********************
-     * 出現 / 消失
+     * 生成/消失
      ********************/
     function schedulePop(delayOverride){
       clearTimeout(popTimer);
@@ -778,7 +816,7 @@
 
     function spawnOne(){
       const empty = [];
-      for (let i=0;i<HOLE_COUNT;i++){
+      for (let i=0;i<9;i++){
         if (!activeMap.has(i)) empty.push(i);
       }
       if (empty.length === 0) return;
@@ -799,7 +837,7 @@
 
       const state = { type, hit:false, timeoutId:null };
       state.timeoutId = setTimeout(()=>{
-        // ✅ 漏打：連擊歸零，但不結束
+        // 漏打：連擊歸零（不結束）
         if (!state.hit) combo = 0;
 
         hole.classList.remove("active","shake");
@@ -827,17 +865,17 @@
       const { hole } = holes[idx];
       shake(hole);
 
-      // ✅ 計分
+      // 計分
       const delta = SCORE[state.type] ?? 0;
       score = Math.max(0, score + delta);
 
-      // ✅ 連擊規則：命中 +1；打到 angry 直接歸零
+      // 連擊
       if (state.type === "angry") combo = 0;
       else combo += 1;
 
       updateHUD();
 
-      // ✅ 音效
+      // 音效
       ensureAudio();
       if (audioCtx.state === "suspended") audioCtx.resume();
       applyVolumes();
@@ -852,12 +890,12 @@
         activeMap.delete(idx);
       }, 120);
 
-      // ✅ 命中就立刻出下一隻
+      // 命中立刻出下一隻
       schedulePop(80);
     }
 
     /********************
-     * 99 秒倒數 -> 結算
+     * 倒數/結算
      ********************/
     function startCountdown(){
       clearInterval(countdownTimer);
@@ -886,10 +924,9 @@
       combo = 0;
       timeLeft = GAME_SECONDS;
 
-      for (const [idx, st] of activeMap.entries()){
+      for (const [i, st] of activeMap.entries()){
         clearTimeout(st.timeoutId);
-        const { hole } = holes[idx];
-        hole.classList.remove("active","shake");
+        holes[i].hole.classList.remove("active","shake");
       }
       activeMap.clear();
 
@@ -913,18 +950,15 @@
       clearTimeout(popTimer);
       clearInterval(countdownTimer);
 
-      for (const [idx, st] of activeMap.entries()){
+      for (const [i, st] of activeMap.entries()){
         clearTimeout(st.timeoutId);
-        const { hole } = holes[idx];
-        hole.classList.remove("active","shake");
+        holes[i].hole.classList.remove("active","shake");
       }
       activeMap.clear();
 
       stopBGM();
 
-      // ✅ 結算畫面隨機鹿鹿圖
       endImgEl.src = pickRandomEndImg();
-
       endReasonEl.textContent = reason || "結束";
       finalScoreEl.textContent = score;
 
@@ -935,7 +969,7 @@
     }
 
     /********************
-     * 按鈕
+     * 事件
      ********************/
     startBtn.addEventListener("click", startGame);
     againBtn.addEventListener("click", startGame);
@@ -947,8 +981,6 @@
       endOverlay.classList.remove("show");
       startOverlay.classList.add("show");
     });
-
-    // ✅ 右上「本機排行榜」：直接打開結算面板（不影響遊戲流程）
     rankBtn.addEventListener("click", ()=>{
       renderRank(loadRank());
       endImgEl.src = pickRandomEndImg();
@@ -962,14 +994,13 @@
      ********************/
     (async function init(){
       buildGrid();
+      buildScoreList();
       renderRank(loadRank());
       bindAudioUI();
       updateHUD();
 
       const ok = await preloadImages();
       if (!ok.every(Boolean)) console.warn("部分圖片載入失敗，請確認 GitHub raw 連結是否可存取");
-
-      // 預先給結算圖一張，避免空白
       endImgEl.src = pickRandomEndImg();
     })();
   </script>
