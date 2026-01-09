@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>阿鹿鹿文創 打鹿鼠</title>
 
-  <!-- 如果你原本有 LIFF 取名字可保留；沒有也不影響 -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
   <style>
     :root{
       --bg1:#ffd6e7;
@@ -33,7 +30,7 @@
     }
     .topbar{
       display:grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap:10px;
       align-items:stretch;
       margin-bottom:12px;
@@ -47,19 +44,12 @@
       -webkit-backdrop-filter: blur(6px);
     }
     .label{font-size:12px; opacity:.75;}
-    .value{font-size:22px; font-weight:800; margin-top:4px;}
+    .value{font-size:22px; font-weight:900; margin-top:4px;}
     .value small{font-size:12px; opacity:.75; font-weight:700;}
 
-    .panel{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:12px;
-    }
+    .panel{ display:grid; grid-template-columns: 1fr; gap:12px; }
 
-    .rules{
-      line-height:1.5;
-      font-size:14px;
-    }
+    .rules{ line-height:1.55; font-size:14px; }
     .rules b{font-weight:900;}
 
     .stage{
@@ -89,20 +79,59 @@
       touch-action: manipulation;
     }
 
-    .mole{
+    /* 容器：方便做紅臉覆蓋 */
+    .moleWrap{
       position:absolute;
-      left:50%;
-      bottom:-8%;
-      transform: translateX(-50%);
-      width:82%;
-      height:auto;
-      filter: drop-shadow(0 10px 12px rgba(0,0,0,.18));
-      transition: transform .08s ease;
+      inset:0;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
       pointer-events:none;
       opacity:0;
     }
-    .hole.active .mole{ opacity:1; }
-    .hole.hit .mole{ transform: translateX(-50%) scale(.92); }
+    .hole.active .moleWrap{ opacity:1; }
+
+    .mole{
+      width:82%;
+      height:auto;
+      margin-bottom:-6%;
+      filter: drop-shadow(0 10px 12px rgba(0,0,0,.18));
+      transform: translateZ(0);
+    }
+
+    /* ✅ 花媽「真的紅臉」：紅色覆蓋 + 影像變得更紅更飽和 */
+    .hole.angry .mole{
+      filter: drop-shadow(0 10px 12px rgba(0,0,0,.18)) saturate(2.2) contrast(1.12) brightness(1.06);
+    }
+    .redTint{
+      position:absolute;
+      left:50%;
+      bottom:0;
+      transform: translateX(-50%);
+      width:82%;
+      height:86%;
+      border-radius:18px;
+      background: radial-gradient(circle at 50% 60%,
+        rgba(255,0,40,.55) 0%,
+        rgba(255,0,40,.35) 40%,
+        rgba(255,0,40,.12) 70%,
+        rgba(255,0,40,0) 100%
+      );
+      mix-blend-mode: multiply;
+      opacity:0;
+      pointer-events:none;
+    }
+    .hole.angry .redTint{ opacity:1; }
+
+    /* ✅ 全角色命中抖一下 */
+    @keyframes shake {
+      0%   { transform: translateX(0) scale(0.98); }
+      25%  { transform: translateX(-4px) scale(0.98); }
+      50%  { transform: translateX(4px) scale(0.98); }
+      75%  { transform: translateX(-3px) scale(0.98); }
+      100% { transform: translateX(0) scale(0.98); }
+    }
+    .hole.shake .mole{ animation: shake 160ms ease-in-out; }
 
     .overlay{
       position:absolute;
@@ -128,19 +157,13 @@
       border:0;
       border-radius:14px;
       padding:10px 14px;
-      font-weight:800;
+      font-weight:900;
       cursor:pointer;
       box-shadow: 0 8px 18px rgba(0,0,0,.12);
     }
     .primary{ background:#ff4aa2; color:#fff; }
     .ghost{ background:#fff; }
     .danger{ background:#111; color:#fff; }
-
-    .loading{
-      font-size:14px;
-      opacity:.8;
-      padding:8px 0 4px;
-    }
 
     table{ width:100%; border-collapse:collapse; }
     th,td{ padding:8px 6px; border-bottom:1px solid rgba(0,0,0,.08); text-align:left; font-size:14px; }
@@ -161,26 +184,21 @@
         <div class="value" id="score">0</div>
       </div>
       <div class="card">
-        <div class="label">連擊</div>
-        <div class="value" id="combo">0</div>
-      </div>
-      <div class="card">
-        <div class="label">速度</div>
-        <div class="value" id="speed">1.00<small>x</small></div>
-      </div>
-      <div class="card">
         <div class="label">剩餘時間</div>
         <div class="value"><span id="timeLeft">99</span><small>s</small></div>
+      </div>
+      <div class="card">
+        <div class="label">命中數</div>
+        <div class="value" id="hits">0</div>
       </div>
     </div>
 
     <div class="panel">
       <div class="card rules">
-        <div class="loading" id="loadingText">⏳ 正在載入圖片…（避免破圖框框）</div>
-        規則：打到 <b>鹿鹿</b> → 加分；打到 <b>生氣鹿鹿</b> → <b>扣分</b>；<b>漏打不會結束</b>（連擊會歸零）。
-        <br>⭐ 彩蛋王（爆炸頭）命中：本次得分 <b>加倍</b>！
-        <br>🌟 <b>特別鹿鹿</b>：命中 <b>大加分</b>！
-        <br>音效：按「開始」後才會啟用（手機規則）。
+        規則（99 秒制）：<b>漏打不結束</b>。<br>
+        得分：阿水 <b>+1</b>、鹿鹿 <b>+2</b>、鹿爸（特別）<b>+3</b>、花媽（生氣）<b>-2</b>。<br>
+        機率：阿水/鹿鹿 各 <b>35%</b>；鹿爸/花媽 各 <b>15%</b>。<br>
+        ✅ 全角色命中都會抖一下；鹿爸/花媽命中有特別音效。
       </div>
 
       <div class="stage">
@@ -198,7 +216,7 @@
 
         <div class="overlay" id="endOverlay">
           <div class="modal">
-            <h2 id="endTitle">結算</h2>
+            <h2>結算</h2>
             <p>原因：<b id="endReason">時間到</b></p>
             <p>你的分數：<b id="finalScore">0</b></p>
             <p>本機排行榜 Top 10</p>
@@ -225,496 +243,418 @@
   </div>
 
   <script>
-  /***************
-   * 你可以在這裡改成你「程式內已放入的圖片檔名」
-   ***************/
-  const ASSETS = {
-    normal: "img/lu.png",           // 一般鹿鹿
-    angry:  "img/lu_angry.png",     // 生氣鹿鹿
-    egg:    "img/lu_egg.png",       // 彩蛋王（爆炸頭）
-    special:"img/lu_special.png"    // 特別鹿鹿（大加分）
-  };
+    /***************
+     * ✅ 圖片（直接用你給的網址）
+     ***************/
+    const ASSETS = {
+      // 鹿鹿
+      lulu:   "https://github.com/z883662/Aruru/blob/main/lulu1.png?raw=true",
+      // 鹿爸（特別鹿鹿）
+      baba:  "https://github.com/z883662/Aruru/blob/main/lulu2.png?raw=true",
+      // 花媽（生氣鹿鹿｜會套用紅臉特效）
+      mama:  "https://github.com/z883662/Aruru/blob/main/lulu3.png?raw=true",
+      // 阿水
+      asui:  "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true"
+    };
 
-  /***************
-   * 分數設定（可調）
-   ***************/
-  const SCORE = {
-    normalBase: 10,
-    angryPenalty: 25,     // 打到生氣鹿鹿扣分
-    specialBonus: 120     // 特別鹿鹿大加分
-  };
+    /***************
+     * ✅ 得分（依你指定）
+     ***************/
+    const SCORE = {
+      asui: +1,
+      lulu: +2,
+      baba: +3,
+      mama: -2
+    };
 
-  /***************
-   * 機率設定（可調）
-   * 注意：總和不必=1，我這裡用「權重」抽樣
-   ***************/
-  const SPAWN_WEIGHT = {
-    normal:  72,
-    angry:   18,
-    egg:      6,
-    special:  4
-  };
+    /***************
+     * ✅ 機率（百分比）
+     * 阿水 35%、鹿鹿 35%、鹿爸 15%、花媽 15%
+     ***************/
+    const SPAWN_PERCENT = [
+      { type: "asui", pct: 35 },
+      { type: "lulu", pct: 35 },
+      { type: "baba", pct: 15 },
+      { type: "mama", pct: 15 }
+    ];
 
-  /***************
-   * 速度 / 出現時間設定（可調）
-   ***************/
-  const GAME_SECONDS = 99;
-  const BASE_POP_MS = 900;      // 基礎出現間隔
-  const BASE_LIVE_MS = 850;     // 基礎停留時間
-  const MIN_POP_MS = 360;
-  const MIN_LIVE_MS = 340;
+    /***************
+     * 節奏設定（可微調）
+     ***************/
+    const GAME_SECONDS = 99;
+    const POP_MS = 650;      // 出現間隔
+    const LIVE_MS = 720;     // 停留時間（漏打不結束）
 
-  // 漏打處理：不結束，只把連擊歸零（你要完全不影響也可改掉）
-  const RESET_COMBO_ON_MISS = true;
+    /***************
+     * DOM
+     ***************/
+    const gridEl = document.getElementById("grid");
+    const scoreEl = document.getElementById("score");
+    const timeLeftEl = document.getElementById("timeLeft");
+    const hitsEl = document.getElementById("hits");
 
-  /***************
-   * DOM
-   ***************/
-  const gridEl = document.getElementById("grid");
-  const scoreEl = document.getElementById("score");
-  const comboEl = document.getElementById("combo");
-  const speedEl = document.getElementById("speed");
-  const timeLeftEl = document.getElementById("timeLeft");
-  const loadingText = document.getElementById("loadingText");
+    const startOverlay = document.getElementById("startOverlay");
+    const endOverlay = document.getElementById("endOverlay");
+    const startBtn = document.getElementById("startBtn");
+    const againBtn = document.getElementById("againBtn");
+    const clearRankBtn = document.getElementById("clearRankBtn");
+    const closeBtn = document.getElementById("closeBtn");
+    const endReasonEl = document.getElementById("endReason");
+    const finalScoreEl = document.getElementById("finalScore");
+    const rankBodyEl = document.getElementById("rankBody");
 
-  const startOverlay = document.getElementById("startOverlay");
-  const endOverlay = document.getElementById("endOverlay");
-  const startBtn = document.getElementById("startBtn");
-  const againBtn = document.getElementById("againBtn");
-  const clearRankBtn = document.getElementById("clearRankBtn");
-  const closeBtn = document.getElementById("closeBtn");
-  const endReasonEl = document.getElementById("endReason");
-  const finalScoreEl = document.getElementById("finalScore");
-  const rankBodyEl = document.getElementById("rankBody");
+    /***************
+     * 狀態
+     ***************/
+    let running = false;
+    let score = 0;
+    let timeLeft = GAME_SECONDS;
+    let hits = 0;
 
-  /***************
-   * 狀態
-   ***************/
-  let running = false;
-  let score = 0;
-  let combo = 0;
-  let timeLeft = GAME_SECONDS;
+    let popTimer = null;
+    let countdownTimer = null;
 
-  let popTimer = null;
-  let countdownTimer = null;
+    const HOLE_COUNT = 9;
+    const holes = [];
+    const activeMap = new Map(); // holeIndex -> {type, hit, timeoutId}
 
-  // hole 狀態
-  const holes = [];
-  const HOLE_COUNT = 9;
-
-  // 防止同一張圖重複點擊計分
-  const activeMap = new Map(); // holeIndex -> {type, hit, timeoutId}
-
-  /***************
-   * 音效（純前端產生簡單音）
-   ***************/
-  let audioCtx = null;
-  let bgmNode = null;
-  let bgmGain = null;
-
-  function ensureAudio(){
-    if (!audioCtx){
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-  }
-
-  function beep(freq=440, dur=0.06, vol=0.06, type="sine"){
-    if (!audioCtx) return;
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = type;
-    o.frequency.value = freq;
-    g.gain.value = vol;
-    o.connect(g);
-    g.connect(audioCtx.destination);
-    o.start();
-    o.stop(audioCtx.currentTime + dur);
-  }
-
-  function popSound(){
-    // 連擊越高音高越高，但控制音量避免吵
-    const base = 360;
-    const lift = Math.min(520, combo * 18);
-    beep(base + lift, 0.045, 0.05, "triangle");
-  }
-
-  function badSound(){
-    beep(180, 0.07, 0.06, "sawtooth");
-  }
-
-  function specialSound(){
-    beep(740, 0.06, 0.055, "sine");
-    setTimeout(()=>beep(980, 0.06, 0.05, "sine"), 55);
-  }
-
-  function startBGM(){
-    if (!audioCtx) return;
-    stopBGM();
-
-    // 很輕柔的雙音（避免吵）
-    const o1 = audioCtx.createOscillator();
-    const o2 = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    const f = audioCtx.createBiquadFilter();
-
-    o1.type = "sine";
-    o2.type = "sine";
-    o1.frequency.value = 220;
-    o2.frequency.value = 330;
-
-    g.gain.value = 0.015;     // 小聲
-    f.type = "lowpass";
-    f.frequency.value = 1200;
-
-    o1.connect(f); o2.connect(f);
-    f.connect(g);
-    g.connect(audioCtx.destination);
-
-    o1.start();
-    o2.start();
-
-    bgmNode = { o1, o2, f };
-    bgmGain = g;
-  }
-
-  function stopBGM(){
-    if (bgmNode){
-      try{ bgmNode.o1.stop(); }catch(e){}
-      try{ bgmNode.o2.stop(); }catch(e){}
-      bgmNode = null;
-    }
-  }
-
-  /***************
-   * 玩家名字（可選：LIFF）
-   ***************/
-  let playerName = "玩家";
-  async function tryInitName(){
-    try{
-      if (!window.liff) return;
-      // 你若有自己的 LIFF_ID 就放這裡（沒有也沒差）
-      // await liff.init({ liffId: "2008860056-NU1XSsDO" });
-      // if (!liff.isLoggedIn()) return;
-      // const p = await liff.getProfile();
-      // playerName = p?.displayName || "玩家";
-    }catch(e){}
-  }
-
-  /***************
-   * 排行榜（localStorage）
-   ***************/
-  const RANK_KEY = "lu_whack_rank_v2";
-
-  function loadRank(){
-    try{
-      return JSON.parse(localStorage.getItem(RANK_KEY) || "[]");
-    }catch(e){
-      return [];
-    }
-  }
-
-  function saveRank(list){
-    localStorage.setItem(RANK_KEY, JSON.stringify(list));
-  }
-
-  function addToRank(name, sc){
-    const now = new Date();
-    const stamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
-    const list = loadRank();
-    list.push({ name, score: sc, time: stamp });
-    list.sort((a,b)=> b.score - a.score);
-    const top10 = list.slice(0,10);
-    saveRank(top10);
-    return top10;
-  }
-
-  function renderRank(list){
-    if (!list || list.length === 0){
-      rankBodyEl.innerHTML = `<tr><td colspan="4">—</td></tr>`;
-      return;
-    }
-    rankBodyEl.innerHTML = list.map((r,i)=>`
-      <tr>
-        <td>${i+1}</td>
-        <td>${escapeHtml(r.name || "玩家")}</td>
-        <td><b>${r.score}</b></td>
-        <td>${escapeHtml(r.time || "")}</td>
-      </tr>
-    `).join("");
-  }
-
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-  }
-
-  /***************
-   * 建立洞洞
-   ***************/
-  function buildGrid(){
-    gridEl.innerHTML = "";
-    holes.length = 0;
-    for (let i=0; i<HOLE_COUNT; i++){
-      const hole = document.createElement("div");
-      hole.className = "hole";
-      hole.dataset.idx = i;
-
-      const img = document.createElement("img");
-      img.className = "mole";
-      img.alt = "lu";
-      img.draggable = false;
-      hole.appendChild(img);
-
-      hole.addEventListener("pointerdown", (ev)=>{
-        ev.preventDefault();
-        if (!running) return;
-        handleHit(i);
-      });
-
-      gridEl.appendChild(hole);
-      holes.push({ hole, img });
-    }
-  }
-
-  /***************
-   * 圖片預載
-   ***************/
-  function preloadImages(){
-    const paths = Object.values(ASSETS);
-    return Promise.all(paths.map(p => new Promise((res)=>{
-      const im = new Image();
-      im.onload = ()=>res(true);
-      im.onerror = ()=>res(false);
-      im.src = p;
-    })));
-  }
-
-  /***************
-   * 抽樣生成類型
-   ***************/
-  function pickType(){
-    const entries = Object.entries(SPAWN_WEIGHT);
-    const total = entries.reduce((s,[,w])=>s+w,0);
-    let r = Math.random() * total;
-    for (const [k,w] of entries){
-      r -= w;
-      if (r <= 0) return k;
-    }
-    return "normal";
-  }
-
-  function speedMultiplier(){
-    // 速度跟連擊略微相關（你也可改成跟分數）
-    const m = 1 + Math.min(0.95, combo * 0.03);
-    return m;
-  }
-
-  function updateHUD(){
-    scoreEl.textContent = score;
-    comboEl.textContent = combo;
-    speedEl.textContent = speedMultiplier().toFixed(2) + "x";
-    timeLeftEl.textContent = timeLeft;
-  }
-
-  /***************
-   * 出現/消失邏輯（重點：漏打不結束）
-   ***************/
-  function schedulePop(){
-    clearTimeout(popTimer);
-    if (!running) return;
-
-    const sp = speedMultiplier();
-    const popMs = Math.max(MIN_POP_MS, Math.floor(BASE_POP_MS / sp));
-    popTimer = setTimeout(()=>{
-      spawnOne();
-      schedulePop();
-    }, popMs);
-  }
-
-  function spawnOne(){
-    // 找空洞
-    const empty = [];
-    for (let i=0;i<HOLE_COUNT;i++){
-      if (!activeMap.has(i)) empty.push(i);
-    }
-    if (empty.length === 0) return;
-    const idx = empty[Math.floor(Math.random()*empty.length)];
-    const type = pickType();
-
-    const { hole, img } = holes[idx];
-    img.src = ASSETS[type] || ASSETS.normal;
-    hole.classList.add("active");
-    hole.classList.remove("hit");
-
-    const sp = speedMultiplier();
-    const liveMs = Math.max(MIN_LIVE_MS, Math.floor(BASE_LIVE_MS / sp));
-
-    const state = { type, hit:false, timeoutId:null };
-    state.timeoutId = setTimeout(()=>{
-      // 消失時，如果沒打到：不結束，只視需求處理連擊
-      hole.classList.remove("active");
-      hole.classList.remove("hit");
-      activeMap.delete(idx);
-
-      if (!state.hit && RESET_COMBO_ON_MISS){
-        combo = 0;
-        updateHUD();
+    /***************
+     * 音效（WebAudio；鹿爸/花媽特效音）
+     ***************/
+    let audioCtx = null;
+    function ensureAudio(){
+      if (!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
-    }, liveMs);
-
-    activeMap.set(idx, state);
-  }
-
-  function handleHit(idx){
-    const state = activeMap.get(idx);
-    if (!state || state.hit) return;
-
-    state.hit = true;
-    clearTimeout(state.timeoutId);
-
-    const { hole } = holes[idx];
-    hole.classList.add("hit");
-
-    // 計分
-    const sp = speedMultiplier();
-    let delta = 0;
-
-    if (state.type === "normal"){
-      combo += 1;
-      delta = Math.round(SCORE.normalBase * sp);
-      popSound();
     }
-    else if (state.type === "egg"){
-      combo += 1;
-      // 彩蛋王：本次得分加倍（以 normalBase 為基礎）
-      delta = Math.round(SCORE.normalBase * sp * 2);
-      specialSound();
-    }
-    else if (state.type === "special"){
-      combo += 1;
-      delta = Math.round(SCORE.specialBonus * sp);
-      specialSound();
-    }
-    else if (state.type === "angry"){
-      // 生氣鹿鹿：只扣分，不結束
-      combo = 0;
-      delta = -SCORE.angryPenalty;
-      badSound();
+    function beep(freq=440, dur=0.06, vol=0.06, type="sine"){
+      if (!audioCtx) return;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type;
+      o.frequency.value = freq;
+      g.gain.value = vol;
+      o.connect(g);
+      g.connect(audioCtx.destination);
+      o.start();
+      o.stop(audioCtx.currentTime + dur);
     }
 
-    score = Math.max(0, score + delta); // 不讓分數變負
-    updateHUD();
+    function hitNormalSound(){ beep(520, 0.045, 0.05, "triangle"); }   // 阿水/鹿鹿
+    function hitBabaSound(){   // 鹿爸特效音
+      beep(660, 0.06, 0.06, "sine");
+      setTimeout(()=>beep(880, 0.06, 0.055, "sine"), 55);
+    }
+    function hitMamaSound(){   // 花媽特效音（較低、兇一點）
+      beep(160, 0.08, 0.065, "sawtooth");
+      setTimeout(()=>beep(120, 0.06, 0.06, "sawtooth"), 70);
+    }
 
-    // 快速收回
-    setTimeout(()=>{
-      hole.classList.remove("active");
-      hole.classList.remove("hit");
-      activeMap.delete(idx);
-    }, 110);
-  }
+    /***************
+     * 玩家名字（簡化）
+     ***************/
+    let playerName = "玩家";
 
-  /***************
-   * 99 秒倒數結束 -> 結算
-   ***************/
-  function startCountdown(){
-    clearInterval(countdownTimer);
-    timeLeft = GAME_SECONDS;
-    updateHUD();
+    /***************
+     * 排行榜（localStorage）
+     ***************/
+    const RANK_KEY = "lu_whack_rank_final_v3";
+    function loadRank(){
+      try{ return JSON.parse(localStorage.getItem(RANK_KEY) || "[]"); }
+      catch(e){ return []; }
+    }
+    function saveRank(list){ localStorage.setItem(RANK_KEY, JSON.stringify(list)); }
+    function addToRank(name, sc){
+      const now = new Date();
+      const stamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+      const list = loadRank();
+      list.push({ name, score: sc, time: stamp });
+      list.sort((a,b)=> b.score - a.score);
+      const top10 = list.slice(0,10);
+      saveRank(top10);
+      return top10;
+    }
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+    }
+    function renderRank(list){
+      if (!list || list.length === 0){
+        rankBodyEl.innerHTML = `<tr><td colspan="4">—</td></tr>`;
+        return;
+      }
+      rankBodyEl.innerHTML = list.map((r,i)=>`
+        <tr>
+          <td>${i+1}</td>
+          <td>${escapeHtml(r.name || "玩家")}</td>
+          <td><b>${r.score}</b></td>
+          <td>${escapeHtml(r.time || "")}</td>
+        </tr>
+      `).join("");
+    }
 
-    countdownTimer = setInterval(()=>{
+    /***************
+     * UI
+     ***************/
+    function updateHUD(){
+      scoreEl.textContent = score;
+      timeLeftEl.textContent = timeLeft;
+      hitsEl.textContent = hits;
+    }
+
+    /***************
+     * 建洞洞
+     ***************/
+    function buildGrid(){
+      gridEl.innerHTML = "";
+      holes.length = 0;
+
+      for (let i=0; i<HOLE_COUNT; i++){
+        const hole = document.createElement("div");
+        hole.className = "hole";
+        hole.dataset.idx = i;
+
+        const wrap = document.createElement("div");
+        wrap.className = "moleWrap";
+
+        const img = document.createElement("img");
+        img.className = "mole";
+        img.alt = "lu";
+        img.draggable = false;
+
+        const tint = document.createElement("div");
+        tint.className = "redTint"; // 只有 angry 時會顯示
+
+        wrap.appendChild(img);
+        wrap.appendChild(tint);
+        hole.appendChild(wrap);
+
+        hole.addEventListener("pointerdown", (ev)=>{
+          ev.preventDefault();
+          if (!running) return;
+          handleHit(i);
+        });
+
+        gridEl.appendChild(hole);
+        holes.push({ hole, img });
+      }
+    }
+
+    /***************
+     * 預載圖片（避免破圖）
+     ***************/
+    function preloadImages(){
+      const paths = Object.values(ASSETS);
+      return Promise.all(paths.map(p => new Promise((res)=>{
+        const im = new Image();
+        im.onload = ()=>res(true);
+        im.onerror = ()=>res(false);
+        im.src = p;
+      })));
+    }
+
+    /***************
+     * 抽樣（百分比）
+     ***************/
+    function pickTypeByPercent(){
+      const r = Math.random() * 100;
+      let acc = 0;
+      for (const it of SPAWN_PERCENT){
+        acc += it.pct;
+        if (r < acc) return it.type;
+      }
+      return "lulu";
+    }
+
+    /***************
+     * 出現 / 消失
+     ***************/
+    function schedulePop(){
+      clearTimeout(popTimer);
       if (!running) return;
-      timeLeft -= 1;
-      if (timeLeft <= 0){
-        timeLeft = 0;
-        updateHUD();
-        endGame("時間到");
-      }else{
-        updateHUD();
+      popTimer = setTimeout(()=>{
+        spawnOne();
+        schedulePop();
+      }, POP_MS);
+    }
+
+    function spawnOne(){
+      // 找空洞
+      const empty = [];
+      for (let i=0;i<HOLE_COUNT;i++){
+        if (!activeMap.has(i)) empty.push(i);
       }
-    }, 1000);
-  }
+      if (empty.length === 0) return;
 
-  function startGame(){
-    running = true;
-    score = 0;
-    combo = 0;
-    timeLeft = GAME_SECONDS;
+      const idx = empty[Math.floor(Math.random()*empty.length)];
+      const type = pickTypeByPercent();
+      const { hole, img } = holes[idx];
 
-    // 清掉殘留
-    for (const [idx, st] of activeMap.entries()){
-      clearTimeout(st.timeoutId);
-      const { hole } = holes[idx];
-      hole.classList.remove("active","hit");
+      // 設定圖與狀態 class
+      hole.classList.add("active");
+      hole.classList.remove("shake","angry");
+
+      if (type === "lulu") img.src = ASSETS.lulu;
+      if (type === "asui") img.src = ASSETS.asui;
+      if (type === "baba") img.src = ASSETS.baba;
+      if (type === "mama") img.src = ASSETS.mama;
+
+      if (type === "mama") hole.classList.add("angry"); // ✅ 套紅臉
+
+      const state = { type, hit:false, timeoutId:null };
+      state.timeoutId = setTimeout(()=>{
+        // ✅ 漏打不結束：只是消失
+        hole.classList.remove("active","shake","angry");
+        activeMap.delete(idx);
+      }, LIVE_MS);
+
+      activeMap.set(idx, state);
     }
-    activeMap.clear();
 
-    updateHUD();
-    startOverlay.classList.remove("show");
-    endOverlay.classList.remove("show");
-
-    // 音效要由使用者手勢觸發
-    ensureAudio();
-    if (audioCtx.state === "suspended") audioCtx.resume();
-    startBGM();
-
-    startCountdown();
-    schedulePop();
-  }
-
-  function endGame(reason){
-    if (!running) return;
-    running = false;
-
-    clearTimeout(popTimer);
-    clearInterval(countdownTimer);
-
-    // 收掉全部洞洞
-    for (const [idx, st] of activeMap.entries()){
-      clearTimeout(st.timeoutId);
-      const { hole } = holes[idx];
-      hole.classList.remove("active","hit");
+    function shake(hole){
+      hole.classList.remove("shake");
+      // 重新觸發動畫
+      void hole.offsetWidth;
+      hole.classList.add("shake");
+      setTimeout(()=>hole.classList.remove("shake"), 220);
     }
-    activeMap.clear();
 
-    stopBGM();
+    function handleHit(idx){
+      const state = activeMap.get(idx);
+      if (!state || state.hit) return;
 
-    endReasonEl.textContent = reason || "結束";
-    finalScoreEl.textContent = score;
+      state.hit = true;
+      clearTimeout(state.timeoutId);
 
-    const top10 = addToRank(playerName, score);
-    renderRank(top10);
+      const { hole } = holes[idx];
 
-    endOverlay.classList.add("show");
-  }
+      // ✅ 全角色被打都抖一下
+      shake(hole);
 
-  /***************
-   * 綁定按鈕
-   ***************/
-  startBtn.addEventListener("click", startGame);
-  againBtn.addEventListener("click", startGame);
-  clearRankBtn.addEventListener("click", ()=>{
-    localStorage.removeItem(RANK_KEY);
-    renderRank([]);
-  });
-  closeBtn.addEventListener("click", ()=>{
-    endOverlay.classList.remove("show");
-    startOverlay.classList.add("show");
-  });
+      // 計分 + 音效
+      let delta = 0;
+      if (state.type === "asui"){
+        delta = SCORE.asui;
+        hitNormalSound();
+      } else if (state.type === "lulu"){
+        delta = SCORE.lulu;
+        hitNormalSound();
+      } else if (state.type === "baba"){
+        delta = SCORE.baba;
+        hitBabaSound();  // ✅ 特別音效
+      } else if (state.type === "mama"){
+        delta = SCORE.mama;
+        hitMamaSound();  // ✅ 特別音效
+      }
 
-  /***************
-   * 初始化
-   ***************/
-  (async function init(){
-    buildGrid();
-    await tryInitName();
+      score = Math.max(0, score + delta); // 不讓分數變負
+      hits += 1;
+      updateHUD();
 
-    const ok = await preloadImages();
-    const allOk = ok.every(Boolean);
-    loadingText.textContent = allOk ? "✅ 圖片載入完成！" : "⚠️ 部分圖片載入失敗：請確認 ASSETS 路徑是否正確";
-    updateHUD();
+      // 收回
+      setTimeout(()=>{
+        hole.classList.remove("active","angry");
+        activeMap.delete(idx);
+      }, 120);
+    }
 
-    // 預先顯示排行榜（如果有）
-    renderRank(loadRank());
-  })();
+    /***************
+     * 99 秒倒數 -> 結算
+     ***************/
+    function startCountdown(){
+      clearInterval(countdownTimer);
+      timeLeft = GAME_SECONDS;
+      updateHUD();
+
+      countdownTimer = setInterval(()=>{
+        if (!running) return;
+        timeLeft -= 1;
+        if (timeLeft <= 0){
+          timeLeft = 0;
+          updateHUD();
+          endGame("時間到");
+        }else{
+          updateHUD();
+        }
+      }, 1000);
+    }
+
+    function startGame(){
+      running = true;
+      score = 0;
+      hits = 0;
+      timeLeft = GAME_SECONDS;
+
+      // 清掉殘留
+      for (const [idx, st] of activeMap.entries()){
+        clearTimeout(st.timeoutId);
+        const { hole } = holes[idx];
+        hole.classList.remove("active","shake","angry");
+      }
+      activeMap.clear();
+
+      // 音效要由手勢啟用
+      ensureAudio();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+
+      updateHUD();
+      startOverlay.classList.remove("show");
+      endOverlay.classList.remove("show");
+
+      startCountdown();
+      schedulePop();
+    }
+
+    function endGame(reason){
+      if (!running) return;
+      running = false;
+
+      clearTimeout(popTimer);
+      clearInterval(countdownTimer);
+
+      for (const [idx, st] of activeMap.entries()){
+        clearTimeout(st.timeoutId);
+        const { hole } = holes[idx];
+        hole.classList.remove("active","shake","angry");
+      }
+      activeMap.clear();
+
+      endReasonEl.textContent = reason || "結束";
+      finalScoreEl.textContent = score;
+
+      const top10 = addToRank(playerName, score);
+      renderRank(top10);
+
+      endOverlay.classList.add("show");
+    }
+
+    /***************
+     * 按鈕
+     ***************/
+    startBtn.addEventListener("click", startGame);
+    againBtn.addEventListener("click", startGame);
+    clearRankBtn.addEventListener("click", ()=>{
+      localStorage.removeItem(RANK_KEY);
+      renderRank([]);
+    });
+    closeBtn.addEventListener("click", ()=>{
+      endOverlay.classList.remove("show");
+      startOverlay.classList.add("show");
+    });
+
+    /***************
+     * 初始化
+     ***************/
+    (async function init(){
+      buildGrid();
+      renderRank(loadRank());
+      updateHUD();
+
+      // 預載避免破圖
+      const ok = await preloadImages();
+      if (!ok.every(Boolean)) {
+        console.warn("部分圖片載入失敗，請確認 GitHub raw 連結是否可存取");
+      }
+    })();
   </script>
 </body>
 </html>
