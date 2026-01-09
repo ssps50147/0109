@@ -28,12 +28,14 @@
       padding: calc(14px + var(--safeT)) 14px calc(18px + var(--safeB));
       box-sizing:border-box;
     }
+
+    /* 顶栏（手机友好） */
     .topbar{
       display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap:10px;
-      align-items:stretch;
       margin-bottom:12px;
+      align-items:stretch;
     }
     .card{
       background:var(--card);
@@ -49,8 +51,36 @@
 
     .panel{ display:grid; grid-template-columns: 1fr; gap:12px; }
 
-    .rules{ line-height:1.55; font-size:14px; }
-    .rules b{font-weight:900;}
+    /* 控制区 */
+    .controls{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    .controlsRow{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+    .pill{
+      border:0;
+      border-radius:999px;
+      padding:8px 12px;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow: 0 8px 18px rgba(0,0,0,.12);
+      background:#fff;
+    }
+    .slider{
+      width:100%;
+      accent-color:#ff4aa2;
+    }
+    .hint{
+      font-size:12px;
+      opacity:.75;
+      line-height:1.4;
+    }
 
     .stage{
       background: #fff8fc;
@@ -79,7 +109,6 @@
       touch-action: manipulation;
     }
 
-    /* 容器：方便做紅臉覆蓋 */
     .moleWrap{
       position:absolute;
       inset:0;
@@ -98,30 +127,6 @@
       filter: drop-shadow(0 10px 12px rgba(0,0,0,.18));
       transform: translateZ(0);
     }
-
-    /* ✅ 花媽「真的紅臉」：紅色覆蓋 + 影像變得更紅更飽和 */
-    .hole.angry .mole{
-      filter: drop-shadow(0 10px 12px rgba(0,0,0,.18)) saturate(2.2) contrast(1.12) brightness(1.06);
-    }
-    .redTint{
-      position:absolute;
-      left:50%;
-      bottom:0;
-      transform: translateX(-50%);
-      width:82%;
-      height:86%;
-      border-radius:18px;
-      background: radial-gradient(circle at 50% 60%,
-        rgba(255,0,40,.55) 0%,
-        rgba(255,0,40,.35) 40%,
-        rgba(255,0,40,.12) 70%,
-        rgba(255,0,40,0) 100%
-      );
-      mix-blend-mode: multiply;
-      opacity:0;
-      pointer-events:none;
-    }
-    .hole.angry .redTint{ opacity:1; }
 
     /* ✅ 全角色命中抖一下 */
     @keyframes shake {
@@ -153,25 +158,43 @@
     .modal h2{ margin:0 0 8px; }
     .modal p{ margin:8px 0; }
     .btnrow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
-    button{
+    button.primary{
       border:0;
       border-radius:14px;
       padding:10px 14px;
       font-weight:900;
       cursor:pointer;
       box-shadow: 0 8px 18px rgba(0,0,0,.12);
+      background:#ff4aa2;
+      color:#fff;
     }
-    .primary{ background:#ff4aa2; color:#fff; }
-    .ghost{ background:#fff; }
-    .danger{ background:#111; color:#fff; }
+    button.ghost{
+      border:0;
+      border-radius:14px;
+      padding:10px 14px;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow: 0 8px 18px rgba(0,0,0,.12);
+      background:#fff;
+    }
+    button.danger{
+      border:0;
+      border-radius:14px;
+      padding:10px 14px;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow: 0 8px 18px rgba(0,0,0,.12);
+      background:#111;
+      color:#fff;
+    }
 
     table{ width:100%; border-collapse:collapse; }
     th,td{ padding:8px 6px; border-bottom:1px solid rgba(0,0,0,.08); text-align:left; font-size:14px; }
     th{ font-size:12px; opacity:.7; }
 
-    @media (max-width:520px){
-      .topbar{ grid-template-columns: 1fr 1fr; }
-      .value{ font-size:20px; }
+    @media (min-width:720px){
+      .topbar{ grid-template-columns: 1fr 1fr 1fr 1fr; }
+      .controls{ grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -191,14 +214,32 @@
         <div class="label">命中數</div>
         <div class="value" id="hits">0</div>
       </div>
+      <div class="card">
+        <div class="label">節奏</div>
+        <div class="value" id="tempo">1.0<small>x</small></div>
+      </div>
     </div>
 
     <div class="panel">
-      <div class="card rules">
-        規則（99 秒制）：<b>漏打不結束</b>。<br>
-        得分：阿水 <b>+1</b>、鹿鹿 <b>+2</b>、鹿爸（特別）<b>+3</b>、花媽（生氣）<b>-2</b>。<br>
-        機率：阿水/鹿鹿 各 <b>35%</b>；鹿爸/花媽 各 <b>15%</b>。<br>
-        ✅ 全角色命中都會抖一下；鹿爸/花媽命中有特別音效。
+      <!-- ✅ 音量控制（手机友好） -->
+      <div class="card controls">
+        <div class="controlsRow">
+          <div>
+            <div class="label">環境 BGM（輕音樂）</div>
+            <div class="hint">免付費・程式生成・可調音量</div>
+          </div>
+          <button class="pill" id="bgmToggleBtn" type="button">BGM：ON</button>
+        </div>
+        <input class="slider" id="bgmVol" type="range" min="0" max="100" value="28" />
+
+        <div class="controlsRow" style="margin-top:6px;">
+          <div>
+            <div class="label">點擊回饋音效</div>
+            <div class="hint">命中會有回饋音・可調音量</div>
+          </div>
+          <button class="pill" id="sfxToggleBtn" type="button">SFX：ON</button>
+        </div>
+        <input class="slider" id="sfxVol" type="range" min="0" max="100" value="42" />
       </div>
 
       <div class="stage">
@@ -207,7 +248,7 @@
         <div class="overlay show" id="startOverlay">
           <div class="modal">
             <h2>阿鹿鹿文創 打鹿鼠</h2>
-            <p>遊戲時間：<b>99 秒</b>。準備好就開始！</p>
+            <p>⏱️ 99 秒制：前 30 秒 1 秒/隻；後 30 秒 0.7 秒/隻。<br>命中會立刻出下一隻，加快節奏。</p>
             <div class="btnrow">
               <button class="primary" id="startBtn">開始</button>
             </div>
@@ -243,55 +284,64 @@
   </div>
 
   <script>
-    /***************
-     * ✅ 圖片（直接用你給的網址）
-     ***************/
+    /********************
+     * ✅ 圖片（你提供的網址）
+     ********************/
     const ASSETS = {
       // 鹿鹿
       lulu:   "https://github.com/z883662/Aruru/blob/main/lulu1.png?raw=true",
-      // 鹿爸（特別鹿鹿）
+      // 鹿爸
       baba:  "https://github.com/z883662/Aruru/blob/main/lulu2.png?raw=true",
-      // 花媽（生氣鹿鹿｜會套用紅臉特效）
+      // 花媽（原版，彩蛋 +3）
       mama:  "https://github.com/z883662/Aruru/blob/main/lulu3.png?raw=true",
       // 阿水
-      asui:  "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true"
+      asui:  "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true",
+      // 生氣鹿鹿（-3）
+      angry: "https://github.com/z883662/Aruru/blob/main/lulu5.png?raw=true"
     };
 
-    /***************
+    /********************
      * ✅ 得分（依你指定）
-     ***************/
+     ********************/
     const SCORE = {
       asui: +1,
-      lulu: +2,
-      baba: +3,
-      mama: -2
+      lulu: +1,
+      baba: +2,
+      mama: +3,
+      angry: -3
     };
 
-    /***************
+    /********************
      * ✅ 機率（百分比）
-     * 阿水 35%、鹿鹿 35%、鹿爸 15%、花媽 15%
-     ***************/
+     ********************/
     const SPAWN_PERCENT = [
-      { type: "asui", pct: 35 },
-      { type: "lulu", pct: 35 },
-      { type: "baba", pct: 15 },
-      { type: "mama", pct: 15 }
+      { type: "asui",  pct: 25 },
+      { type: "lulu",  pct: 25 },
+      { type: "baba",  pct: 20 },
+      { type: "mama",  pct: 15 },
+      { type: "angry", pct: 15 }
     ];
 
-    /***************
-     * 節奏設定（可微調）
-     ***************/
+    /********************
+     * ✅ 節奏設定
+     * 99 秒制；前 30 秒：1.0s/隻；後 30 秒：0.7s/隻
+     * 命中：立刻出下一隻（不等下一個間隔）
+     ********************/
     const GAME_SECONDS = 99;
-    const POP_MS = 650;      // 出現間隔
-    const LIVE_MS = 720;     // 停留時間（漏打不結束）
+    const PHASE1_SECONDS = 30;
+    const PHASE2_SECONDS = 30; // 後 30 秒加速（其餘時間維持後段速度）
+    const POP_MS_PHASE1 = 1000;
+    const POP_MS_PHASE2 = 700;
+    const LIVE_MS = 720; // 停留時間（漏打不結束）
 
-    /***************
+    /********************
      * DOM
-     ***************/
+     ********************/
     const gridEl = document.getElementById("grid");
     const scoreEl = document.getElementById("score");
     const timeLeftEl = document.getElementById("timeLeft");
     const hitsEl = document.getElementById("hits");
+    const tempoEl = document.getElementById("tempo");
 
     const startOverlay = document.getElementById("startOverlay");
     const endOverlay = document.getElementById("endOverlay");
@@ -303,9 +353,14 @@
     const finalScoreEl = document.getElementById("finalScore");
     const rankBodyEl = document.getElementById("rankBody");
 
-    /***************
+    const bgmToggleBtn = document.getElementById("bgmToggleBtn");
+    const sfxToggleBtn = document.getElementById("sfxToggleBtn");
+    const bgmVolEl = document.getElementById("bgmVol");
+    const sfxVolEl = document.getElementById("sfxVol");
+
+    /********************
      * 狀態
-     ***************/
+     ********************/
     let running = false;
     let score = 0;
     let timeLeft = GAME_SECONDS;
@@ -318,47 +373,212 @@
     const holes = [];
     const activeMap = new Map(); // holeIndex -> {type, hit, timeoutId}
 
-    /***************
-     * 音效（WebAudio；鹿爸/花媽特效音）
-     ***************/
+    /********************
+     * ✅ 音訊：程式生成（免付費）
+     * - BGM：嫻靜輕音樂，可開關/可調音量
+     * - SFX：點擊回饋/特效音，可開關/可調音量
+     ********************/
     let audioCtx = null;
+    let masterGain = null;
+    let bgmGain = null;
+    let sfxGain = null;
+
+    let bgmEnabled = true;
+    let sfxEnabled = true;
+
+    let bgmTimer = null;
+    let bgmNodes = [];
+    let bgmStep = 0;
+
     function ensureAudio(){
       if (!audioCtx){
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.9;
+        masterGain.connect(audioCtx.destination);
+
+        bgmGain = audioCtx.createGain();
+        sfxGain = audioCtx.createGain();
+
+        bgmGain.connect(masterGain);
+        sfxGain.connect(masterGain);
+
+        applyVolumes();
       }
     }
-    function beep(freq=440, dur=0.06, vol=0.06, type="sine"){
+
+    function applyVolumes(){
+      // 0~100 -> 0~0.25（BGM 更小聲）
+      const bgmV = (parseInt(bgmVolEl.value,10) || 0) / 100;
+      const sfxV = (parseInt(sfxVolEl.value,10) || 0) / 100;
+
+      if (bgmGain) bgmGain.gain.value = bgmEnabled ? (bgmV * 0.25) : 0;
+      if (sfxGain) sfxGain.gain.value = sfxEnabled ? (sfxV * 0.60) : 0;
+    }
+
+    function nowMs(){
+      return (typeof performance !== "undefined" ? performance.now() : Date.now());
+    }
+
+    function beep({freq=440, dur=0.06, vol=0.06, type="sine", bus="sfx"} = {}){
       if (!audioCtx) return;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
+
       o.type = type;
       o.frequency.value = freq;
-      g.gain.value = vol;
+
+      const t0 = audioCtx.currentTime;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
       o.connect(g);
-      g.connect(audioCtx.destination);
-      o.start();
-      o.stop(audioCtx.currentTime + dur);
+      g.connect(bus === "bgm" ? bgmGain : sfxGain);
+
+      o.start(t0);
+      o.stop(t0 + dur + 0.02);
     }
 
-    function hitNormalSound(){ beep(520, 0.045, 0.05, "triangle"); }   // 阿水/鹿鹿
-    function hitBabaSound(){   // 鹿爸特效音
-      beep(660, 0.06, 0.06, "sine");
-      setTimeout(()=>beep(880, 0.06, 0.055, "sine"), 55);
+    // ✅ 點擊回饋音效（阿水/鹿鹿）
+    function sfxHitNormal(){
+      if (!sfxEnabled) return;
+      beep({freq: 520, dur: 0.045, vol: 0.055, type:"triangle", bus:"sfx"});
     }
-    function hitMamaSound(){   // 花媽特效音（較低、兇一點）
-      beep(160, 0.08, 0.065, "sawtooth");
-      setTimeout(()=>beep(120, 0.06, 0.06, "sawtooth"), 70);
+    // ✅ 鹿爸特效音
+    function sfxHitBaba(){
+      if (!sfxEnabled) return;
+      beep({freq: 660, dur: 0.06, vol: 0.065, type:"sine", bus:"sfx"});
+      setTimeout(()=>beep({freq: 880, dur: 0.06, vol: 0.06, type:"sine", bus:"sfx"}), 55);
+    }
+    // ✅ 生氣鹿鹿特效音（較低、兇）
+    function sfxHitAngry(){
+      if (!sfxEnabled) return;
+      beep({freq: 170, dur: 0.08, vol: 0.07, type:"sawtooth", bus:"sfx"});
+      setTimeout(()=>beep({freq: 130, dur: 0.06, vol: 0.065, type:"sawtooth", bus:"sfx"}), 70);
+    }
+    // ✅ 花媽（彩蛋）音效（溫柔亮一下）
+    function sfxHitMama(){
+      if (!sfxEnabled) return;
+      beep({freq: 740, dur: 0.05, vol: 0.06, type:"triangle", bus:"sfx"});
+      setTimeout(()=>beep({freq: 980, dur: 0.05, vol: 0.055, type:"triangle", bus:"sfx"}), 55);
     }
 
-    /***************
-     * 玩家名字（簡化）
-     ***************/
-    let playerName = "玩家";
+    // ✅ 嫻靜輕音樂 BGM（程式生成）
+    function stopBGM(){
+      if (bgmTimer){
+        clearInterval(bgmTimer);
+        bgmTimer = null;
+      }
+      bgmNodes.forEach(n=>{ try{ n.stop(); }catch(e){} });
+      bgmNodes = [];
+    }
 
-    /***************
+    function startBGM(){
+      if (!audioCtx) return;
+      stopBGM();
+      if (!bgmEnabled) return;
+
+      // 五聲音階（安靜不刺耳）：C D E G A
+      const scale = [261.63, 293.66, 329.63, 392.00, 440.00];
+      const chordRoots = [261.63, 220.00, 293.66, 246.94]; // 柔和循環
+      bgmStep = 0;
+
+      // 低通讓更柔
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = 900;
+      lp.connect(bgmGain);
+
+      function playPad(root){
+        const freqs = [root, root*1.25, root*1.5];
+        freqs.forEach((f)=>{
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = "sine";
+          o.frequency.value = f;
+
+          const t0 = audioCtx.currentTime;
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.08);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.6);
+
+          o.connect(g);
+          g.connect(lp);
+
+          o.start(t0);
+          o.stop(t0 + 1.7);
+          bgmNodes.push(o);
+        });
+      }
+
+      function playNote(freq){
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = "triangle";
+        o.frequency.value = freq;
+
+        const t0 = audioCtx.currentTime;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.24, t0 + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+
+        o.connect(g);
+        g.connect(lp);
+
+        o.start(t0);
+        o.stop(t0 + 0.26);
+        bgmNodes.push(o);
+      }
+
+      const intervalMs = 360; // 嫻靜節拍
+      bgmTimer = setInterval(()=>{
+        if (!bgmEnabled) return;
+
+        const chord = chordRoots[Math.floor(bgmStep / 4) % chordRoots.length];
+        if (bgmStep % 4 === 0) playPad(chord);
+
+        const idxBase = (bgmStep % 8 < 4) ? 0 : 2;
+        const idx = Math.max(0, Math.min(scale.length-1, idxBase + (Math.random()<0.5 ? 0 : 1)));
+        playNote(scale[idx]);
+
+        bgmStep++;
+      }, intervalMs);
+    }
+
+    function bindAudioUI(){
+      bgmToggleBtn.addEventListener("click", ()=>{
+        ensureAudio();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        bgmEnabled = !bgmEnabled;
+        bgmToggleBtn.textContent = `BGM：${bgmEnabled ? "ON" : "OFF"}`;
+        applyVolumes();
+        if (bgmEnabled && running) startBGM();
+        else stopBGM();
+      });
+
+      sfxToggleBtn.addEventListener("click", ()=>{
+        ensureAudio();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        sfxEnabled = !sfxEnabled;
+        sfxToggleBtn.textContent = `SFX：${sfxEnabled ? "ON" : "OFF"}`;
+        applyVolumes();
+      });
+
+      bgmVolEl.addEventListener("input", ()=>{
+        ensureAudio();
+        applyVolumes();
+      });
+      sfxVolEl.addEventListener("input", ()=>{
+        ensureAudio();
+        applyVolumes();
+      });
+    }
+
+    /********************
      * 排行榜（localStorage）
-     ***************/
-    const RANK_KEY = "lu_whack_rank_final_v3";
+     ********************/
+    const RANK_KEY = "lu_whack_rank_final_v4";
     function loadRank(){
       try{ return JSON.parse(localStorage.getItem(RANK_KEY) || "[]"); }
       catch(e){ return []; }
@@ -392,18 +612,25 @@
       `).join("");
     }
 
-    /***************
+    /********************
      * UI
-     ***************/
+     ********************/
+    function tempoMultiplier(){
+      // 用「目前出現間隔」反推節奏（1.0x or ~1.43x）
+      const ms = currentPopMs();
+      return (POP_MS_PHASE1 / ms);
+    }
+
     function updateHUD(){
       scoreEl.textContent = score;
       timeLeftEl.textContent = timeLeft;
       hitsEl.textContent = hits;
+      tempoEl.textContent = tempoMultiplier().toFixed(2) + "x";
     }
 
-    /***************
+    /********************
      * 建洞洞
-     ***************/
+     ********************/
     function buildGrid(){
       gridEl.innerHTML = "";
       holes.length = 0;
@@ -418,14 +645,10 @@
 
         const img = document.createElement("img");
         img.className = "mole";
-        img.alt = "lu";
+        img.alt = "角色";
         img.draggable = false;
 
-        const tint = document.createElement("div");
-        tint.className = "redTint"; // 只有 angry 時會顯示
-
         wrap.appendChild(img);
-        wrap.appendChild(tint);
         hole.appendChild(wrap);
 
         hole.addEventListener("pointerdown", (ev)=>{
@@ -439,9 +662,9 @@
       }
     }
 
-    /***************
+    /********************
      * 預載圖片（避免破圖）
-     ***************/
+     ********************/
     function preloadImages(){
       const paths = Object.values(ASSETS);
       return Promise.all(paths.map(p => new Promise((res)=>{
@@ -452,9 +675,9 @@
       })));
     }
 
-    /***************
+    /********************
      * 抽樣（百分比）
-     ***************/
+     ********************/
     function pickTypeByPercent(){
       const r = Math.random() * 100;
       let acc = 0;
@@ -465,16 +688,35 @@
       return "lulu";
     }
 
-    /***************
+    /********************
+     * 節奏：依剩餘時間決定出現間隔
+     * 前 30 秒（倒數 99~70）：1.0s
+     * 後 30 秒（倒數 30~1）：0.7s
+     * 其餘時間（中段）：沿用後段速度（更刺激）
+     ********************/
+    function currentPopMs(){
+      const elapsed = GAME_SECONDS - timeLeft; // 已過秒數
+      if (elapsed < PHASE1_SECONDS) return POP_MS_PHASE1;
+
+      const remaining = timeLeft;
+      if (remaining <= PHASE2_SECONDS) return POP_MS_PHASE2;
+
+      // 中段（30~69秒）：也用 0.7s（你要中段回 1.0s 也可改這行）
+      return POP_MS_PHASE2;
+    }
+
+    /********************
      * 出現 / 消失
-     ***************/
-    function schedulePop(){
+     ********************/
+    function schedulePop(delayOverride){
       clearTimeout(popTimer);
       if (!running) return;
+
+      const delay = (typeof delayOverride === "number") ? delayOverride : currentPopMs();
       popTimer = setTimeout(()=>{
         spawnOne();
         schedulePop();
-      }, POP_MS);
+      }, delay);
     }
 
     function spawnOne(){
@@ -489,21 +731,19 @@
       const type = pickTypeByPercent();
       const { hole, img } = holes[idx];
 
-      // 設定圖與狀態 class
       hole.classList.add("active");
-      hole.classList.remove("shake","angry");
+      hole.classList.remove("shake");
 
       if (type === "lulu") img.src = ASSETS.lulu;
       if (type === "asui") img.src = ASSETS.asui;
       if (type === "baba") img.src = ASSETS.baba;
       if (type === "mama") img.src = ASSETS.mama;
-
-      if (type === "mama") hole.classList.add("angry"); // ✅ 套紅臉
+      if (type === "angry") img.src = ASSETS.angry;
 
       const state = { type, hit:false, timeoutId:null };
       state.timeoutId = setTimeout(()=>{
-        // ✅ 漏打不結束：只是消失
-        hole.classList.remove("active","shake","angry");
+        // 漏打不結束：只消失
+        hole.classList.remove("active","shake");
         activeMap.delete(idx);
       }, LIVE_MS);
 
@@ -512,7 +752,6 @@
 
     function shake(hole){
       hole.classList.remove("shake");
-      // 重新觸發動畫
       void hole.offsetWidth;
       hole.classList.add("shake");
       setTimeout(()=>hole.classList.remove("shake"), 220);
@@ -527,39 +766,44 @@
 
       const { hole } = holes[idx];
 
-      // ✅ 全角色被打都抖一下
+      // ✅ 全角色命中抖一下
       shake(hole);
 
-      // 計分 + 音效
-      let delta = 0;
-      if (state.type === "asui"){
-        delta = SCORE.asui;
-        hitNormalSound();
-      } else if (state.type === "lulu"){
-        delta = SCORE.lulu;
-        hitNormalSound();
-      } else if (state.type === "baba"){
-        delta = SCORE.baba;
-        hitBabaSound();  // ✅ 特別音效
-      } else if (state.type === "mama"){
-        delta = SCORE.mama;
-        hitMamaSound();  // ✅ 特別音效
-      }
-
-      score = Math.max(0, score + delta); // 不讓分數變負
+      // ✅ 計分
+      const delta = SCORE[state.type] ?? 0;
+      score = Math.max(0, score + delta);
       hits += 1;
       updateHUD();
 
+      // ✅ 音效
+      ensureAudio();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      applyVolumes();
+
+      if (state.type === "asui" || state.type === "lulu"){
+        sfxHitNormal();
+      } else if (state.type === "baba"){
+        sfxHitBaba();
+      } else if (state.type === "mama"){
+        sfxHitMama();
+      } else if (state.type === "angry"){
+        sfxHitAngry();
+      }
+
       // 收回
       setTimeout(()=>{
-        hole.classList.remove("active","angry");
+        hole.classList.remove("active","shake");
         activeMap.delete(idx);
       }, 120);
+
+      // ✅ 命中就立刻出下一隻（加快節奏）
+      // 用很短的延遲避免瞬間連續生成造成閃爍
+      schedulePop(80);
     }
 
-    /***************
+    /********************
      * 99 秒倒數 -> 結算
-     ***************/
+     ********************/
     function startCountdown(){
       clearInterval(countdownTimer);
       timeLeft = GAME_SECONDS;
@@ -584,17 +828,18 @@
       hits = 0;
       timeLeft = GAME_SECONDS;
 
-      // 清掉殘留
       for (const [idx, st] of activeMap.entries()){
         clearTimeout(st.timeoutId);
         const { hole } = holes[idx];
-        hole.classList.remove("active","shake","angry");
+        hole.classList.remove("active","shake");
       }
       activeMap.clear();
 
-      // 音效要由手勢啟用
       ensureAudio();
       if (audioCtx.state === "suspended") audioCtx.resume();
+      applyVolumes();
+
+      if (bgmEnabled) startBGM();
 
       updateHUD();
       startOverlay.classList.remove("show");
@@ -614,22 +859,24 @@
       for (const [idx, st] of activeMap.entries()){
         clearTimeout(st.timeoutId);
         const { hole } = holes[idx];
-        hole.classList.remove("active","shake","angry");
+        hole.classList.remove("active","shake");
       }
       activeMap.clear();
+
+      stopBGM();
 
       endReasonEl.textContent = reason || "結束";
       finalScoreEl.textContent = score;
 
-      const top10 = addToRank(playerName, score);
+      const top10 = addToRank("玩家", score);
       renderRank(top10);
 
       endOverlay.classList.add("show");
     }
 
-    /***************
+    /********************
      * 按鈕
-     ***************/
+     ********************/
     startBtn.addEventListener("click", startGame);
     againBtn.addEventListener("click", startGame);
     clearRankBtn.addEventListener("click", ()=>{
@@ -641,19 +888,17 @@
       startOverlay.classList.add("show");
     });
 
-    /***************
+    /********************
      * 初始化
-     ***************/
+     ********************/
     (async function init(){
       buildGrid();
       renderRank(loadRank());
       updateHUD();
+      bindAudioUI();
 
-      // 預載避免破圖
       const ok = await preloadImages();
-      if (!ok.every(Boolean)) {
-        console.warn("部分圖片載入失敗，請確認 GitHub raw 連結是否可存取");
-      }
+      if (!ok.every(Boolean)) console.warn("部分圖片載入失敗，請確認 GitHub raw 連結是否可存取");
     })();
   </script>
 </body>
